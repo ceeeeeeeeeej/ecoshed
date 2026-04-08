@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-08T04:08:55.775Z */
 /* EcoSched Admin Dashboard - Main Stylesheet */
 
 /* Base Styles */
@@ -2175,6 +2175,203 @@ p {
 
 .slide-in {
     animation: slideIn 0.3s ease;
+}
+
+/* Notifications Dropdown */
+.notifications-dropdown {
+    position: relative;
+    margin-right: 1.5rem;
+}
+
+.icon-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    background: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    color: #6b7280;
+}
+
+.icon-btn:hover {
+    background: #f9fafb;
+    color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.notification-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid white;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 360px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    display: none;
+    z-index: 1000;
+    overflow: hidden;
+    animation: dropdownFadeIn 0.2s ease-out;
+}
+
+.dropdown-menu.show {
+    display: block !important;
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-header {
+    padding: 1.25rem;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dropdown-header h3 {
+    margin: 0;
+    padding: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.mark-all-btn {
+    font-size: 0.8125rem;
+    color: #10b981;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.mark-all-btn:hover {
+    text-decoration: underline;
+}
+
+.dropdown-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 1rem 1.25rem;
+    display: flex;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-bottom: 1px solid #f9fafb;
+    position: relative;
+    background: white;
+}
+
+.notification-item:hover {
+    background: #f9fafb !important;
+}
+
+.notification-item.unread {
+    background: #f0fdf4;
+}
+
+.notification-item.unread::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #10b981;
+}
+
+.noti-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.noti-icon.info { background: #dbeafe; color: #1e40af; }
+.noti-icon.success { background: #d1fae5; color: #065f46; }
+.noti-icon.warning { background: #fef3c7; color: #92400e; }
+.noti-icon.error { background: #fee2e2; color: #991b1b; }
+.noti-icon.special_collection { background: #fef3c7; color: #92400e; }
+.noti-icon.feedback { background: #dbeafe; color: #1e40af; }
+.noti-icon.new_user { background: #d1fae5; color: #065f46; }
+
+.noti-content {
+    flex: 1;
+}
+
+.noti-title {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+}
+
+.noti-message {
+    color: #6b7280;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    margin-bottom: 0.5rem;
+}
+
+.noti-time {
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.dropdown-footer {
+    padding: 0.75rem;
+    background: #f9fafb;
+    border-top: 1px solid #f3f4f6;
+    text-align: center;
+}
+
+.view-all-btn {
+    width: 100%;
+    padding: 0.625rem;
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.view-all-btn:hover {
+    color: #10b981;
 }
 
 .shake {

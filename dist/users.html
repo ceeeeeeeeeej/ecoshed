@@ -34,6 +34,13 @@
     <div class="filters-container">
       <div class="filters-row">
         <div class="filter-group">
+          <label>Search Users</label>
+          <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" id="userSearch" placeholder="Search by name, email, or role..." oninput="handleSearch(event)" />
+          </div>
+        </div>
+        <div class="filter-group">
           <label>Role</label>
           <select class="filter-select" id="roleFilter">
             <option value="">All Roles</option>
@@ -92,10 +99,9 @@
               </th>
               <th>User</th>
               <th>Role</th>
-              <th>Status</th>
-              <th>Last Active</th>
+              <th>Purok</th>
               <th>Phone</th>
-              <th>Actions</th>
+              <th width="150">Actions</th>
             </tr>
           </thead>
           <tbody id="usersTableBody"></tbody>
@@ -158,12 +164,16 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="location">Service Area</label>
+            <label for="location">Barangay</label>
             <select id="location" name="location" required>
-              <option value="">Select Area</option>
+              <option value="">Select Barangay</option>
               <option value="Victoria">Victoria</option>
               <option value="Dayo-An">Dayo-An</option>
             </select>
+          </div>
+          <div class="form-group">
+            <label for="purok">Purok</label>
+            <input type="text" id="purok" name="purok" placeholder="e.g. Purok 1" />
           </div>
         </div>
         <div class="form-group">
@@ -206,16 +216,12 @@
           <p id="viewRole">-</p>
         </div>
         <div class="form-group">
-          <label>Status</label>
-          <p id="viewStatus">-</p>
-        </div>
-        <div class="form-group">
-          <label>Service Area</label>
+          <label>Barangay</label>
           <p id="viewLocation">-</p>
         </div>
         <div class="form-group">
-          <label>Last Active</label>
-          <p id="viewLastActive">-</p>
+          <label>Purok</label>
+          <p id="viewPurok">-</p>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-primary" onclick="closeViewUserModal()">
@@ -262,21 +268,18 @@
               <option value="admin">Administrator</option>
             </select>
           </div>
+        <div class="form-row">
           <div class="form-group">
-            <label for="editStatus">Status</label>
-            <select id="editStatus" name="editStatus" required>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
+            <label for="editLocation">Barangay</label>
+            <select id="editLocation" name="editLocation" required>
+              <option value="Victoria">Victoria</option>
+              <option value="Dayo-An">Dayo-An</option>
             </select>
           </div>
-        </div>
-        <div class="form-group">
-          <label for="editLocation">Service Area</label>
-          <select id="editLocation" name="editLocation" required>
-            <option value="Victoria">Victoria</option>
-            <option value="Dayo-An">Dayo-An</option>
-          </select>
+          <div class="form-group">
+            <label for="editPurok">Purok</label>
+            <input type="text" id="editPurok" name="editPurok" placeholder="e.g. Purok 1" />
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">

@@ -5,6 +5,8 @@ const path = require('path');
 const BUILD_CONFIG = {
     sourceDir: '.',
     distDir: './dist',
+    deployDir: './deploy',
+    docsDir: './docs',
     minify: false,
     optimize: false,
     version: '1.0.0',
@@ -14,26 +16,25 @@ const BUILD_CONFIG = {
 // Files to copy and optimize
 const FILES_TO_PROCESS = {
     html: [
-        'html/login.html',
-        'html/registration.html',
-        'html/dashboard.html',
-        'html/users.html',
-
-        'html/routes.html',
-        'html/schedules.html',
-        'html/special-collections.html',
-        'html/feedback.html',
-        'html/gps-sensor.html',
-        'html/analytics.html',
-        'html/notifications.html',
-        'html/settings.html'
+        'docs/login.html',
+        'docs/registration.html',
+        'docs/dashboard.html',
+        'docs/users.html',
+        'docs/routes.html',
+        'docs/schedules.html',
+        'docs/special-collections.html',
+        'docs/feedback.html',
+        'docs/gps-sensor.html',
+        'docs/analytics.html',
+        'docs/notifications.html',
+        'docs/settings.html',
+        'docs/index.html'
     ],
     css: [
         'css/landing.css',
         'css/main.css',
         'css/dashboard.css',
         'css/pages/users.css',
-
         'css/pages/routes.css',
         'css/pages/schedules.css',
         'css/pages/analytics.css',
@@ -41,18 +42,17 @@ const FILES_TO_PROCESS = {
         'css/pages/settings.css'
     ],
     js: [
-        'js/script.js',
-        'js/dashboard.js',
-        'js/landing.js',
-        'js/pages/users.js',
-
-        'js/pages/routes.js',
-        'js/pages/schedules.js',
-        'js/pages/special-collections.js',
-        'js/pages/feedback.js',
-        'js/pages/analytics.js',
-        'js/pages/notifications.js',
-        'js/pages/settings.js'
+        'deploy/js/script.js',
+        'deploy/js/dashboard.js',
+        'deploy/js/landing.js',
+        'deploy/js/users.js',
+        'deploy/js/routes.js',
+        'deploy/js/schedules.js',
+        'deploy/js/special-collections.js',
+        'deploy/js/feedback.js',
+        'deploy/js/analytics.js',
+        'deploy/js/notifications.js',
+        'deploy/js/settings.js'
     ],
     config: [
         'config/supabase_config.js'
@@ -169,8 +169,8 @@ function build() {
             }
             content = addBuildInfo(content, 'css');
 
-            // Create dist structure - maintain css folder structure
-            const destPath = path.join(BUILD_CONFIG.distDir, file);
+            // Flatten structure: css/pages/main.css -> dist/css/main.css
+            const destPath = path.join(BUILD_CONFIG.distDir, file.replace('css/pages/', 'css/'));
             ensureDir(path.dirname(destPath));
             fs.writeFileSync(destPath, content);
             console.log(`✓ Processed: ${file} → ${destPath}`);
@@ -189,8 +189,8 @@ function build() {
             }
             content = addBuildInfo(content, 'js');
 
-            // Create dist structure - maintain js folder structure
-            const destPath = path.join(BUILD_CONFIG.distDir, file);
+            // Map: deploy/js/dashboard.js -> dist/js/dashboard.js
+            const destPath = path.join(BUILD_CONFIG.distDir, file.replace('deploy/js/', 'js/').replace('js/pages/', 'js/'));
             ensureDir(path.dirname(destPath));
             fs.writeFileSync(destPath, content);
             console.log(`✓ Processed: ${file} → ${destPath}`);

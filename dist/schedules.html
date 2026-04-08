@@ -17,11 +17,15 @@
             <div class="header-left">
                 <h1 class="page-title">
                     <i class="fas fa-calendar-alt"></i>
-                    Schedule Management
+                    Schedule Management <span style="font-size: 0.7rem; color: #9ca3af; font-weight: 400; vertical-align: middle; margin-left: 8px;">v1.2</span>
                 </h1>
                 <p class="page-subtitle">Manage barangay collection schedules - reschedule anytime</p>
             </div>
-            <div class="header-right">
+            <div class="header-right" style="display: flex; gap: 10px;">
+                <button class="btn btn-outline" id="toggleCalendarBtn" onclick="toggleCalendarVisibility()" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-alt"></i>
+                    Calendar
+                </button>
                 <button class="btn btn-primary" onclick="openAddAreaScheduleModal()">
                     <i class="fas fa-plus"></i>
                     New Area Schedule
@@ -30,7 +34,7 @@
         </div>
 
         <!-- Calendar View -->
-        <div class="calendar-container">
+        <div class="calendar-container" id="calendarSection" style="display: none; transition: max-height 0.3s ease-in-out;">
             <div class="calendar-header">
                 <button class="btn btn-outline" onclick="previousMonth()">
                     <i class="fas fa-chevron-left"></i>
@@ -47,17 +51,30 @@
 
         <!-- Schedule List -->
         <div class="schedule-list-container">
-            <div class="list-header">
-                <h3>Upcoming Schedules</h3>
-                <div class="view-toggle">
-                    <button class="btn btn-outline active" onclick="toggleView('list')">
-                        <i class="fas fa-list"></i>
-                        List
+            <div class="list-header" style="flex-wrap: wrap; gap: 10px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <input type="checkbox" id="selectAllSchedules" title="Select All" style="width: 18px; height: 18px; cursor: pointer;">
+                    <h3 style="margin: 0;">Upcoming Schedules</h3>
+                    <button id="bulkDeleteBtn" class="btn btn-danger" style="display: none; padding: 6px 12px; font-size: 13px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 5px;">
+                        <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
                     </button>
-                    <button class="btn btn-outline" onclick="toggleView('grid')">
-                        <i class="fas fa-th"></i>
-                        Grid
-                    </button>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="filter-toggle" style="display: flex; background: #f3f4f6; padding: 4px; border-radius: 8px; gap: 4px;">
+                        <button class="btn-filter active" onclick="setCollectionFilter('all')" data-filter="all">All</button>
+                        <button class="btn-filter" onclick="setCollectionFilter('regular')" data-filter="regular">Regular</button>
+                        <button class="btn-filter" onclick="setCollectionFilter('special')" data-filter="special">Special</button>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="btn btn-outline active" onclick="toggleView('list')">
+                            <i class="fas fa-list"></i>
+                            List
+                        </button>
+                        <button class="btn btn-outline" onclick="toggleView('grid')">
+                            <i class="fas fa-th"></i>
+                            Grid
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="schedule-list" id="scheduleList">
@@ -79,10 +96,7 @@
                 <input type="hidden" id="isReschedule" name="isReschedule" value="false">
                 <input type="hidden" id="originalDate" name="originalDate" value="">
                 <input type="hidden" id="originalTime" name="originalTime" value="">
-                <div class="form-group">
-                    <label for="scheduleName">Schedule Name</label>
-                    <input type="text" id="scheduleName" name="scheduleName" required>
-                </div>
+                <input type="hidden" id="residentId" name="residentId" value="">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="area">Barangay</label>
@@ -90,7 +104,13 @@
                             placeholder="Enter or select barangay" required>
                         <datalist id="barangayList">
                             <option value="Victoria">
-                            <option value="Dayo-An">
+                            <option value="Gamut">
+                            <option value="Bajao & Cagdapao">
+                            <option value="Dayo-An & Unaban">
+                            <option value="Purisima">
+                            <option value="Kinabigtasan">
+                            <option value="Sumo-sumo & Umbay">
+                            <option value="Jubang & Unidos">
                         </datalist>
                     </div>
                     <div class="form-group">
@@ -126,9 +146,15 @@
                         <input type="time" id="startTime" name="startTime" required>
                     </div>
                 </div>
-                <div class="form-group">
-                    <label for="description">Description</label>
-                    <textarea id="description" name="description" rows="3"></textarea>
+
+                <div class="form-group" id="residentInfoContainer">
+                    <label for="residentName">Resident Name (Optional)</label>
+                    <input type="text" id="residentNameField" name="residentName" placeholder="e.g. John Doe">
+                </div>
+
+                <div class="form-group" id="pickupLocationContainer">
+                    <label for="pickupLocation">Pickup Location (Optional)</label>
+                    <input type="text" id="pickupLocationField" name="pickupLocation" placeholder="e.g. Near the blue gate">
                 </div>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeAddScheduleModal()">Cancel</button>

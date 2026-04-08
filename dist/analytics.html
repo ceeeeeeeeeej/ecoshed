@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="./css/pages/analytics.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -26,9 +23,9 @@
                 <p class="page-subtitle">Track performance and generate insights</p>
             </div>
             <div class="header-right">
-                <button class="btn btn-primary" onclick="generateReport(event)">
-                    <i class="fas fa-download"></i>
-                    Generate Report
+                <button class="btn btn-primary" onclick="showHeatmapInput()">
+                    <i class="fas fa-check"></i>
+                    Apply
                 </button>
             </div>
         </div>
@@ -79,30 +76,76 @@
 
 
 
-        <!-- Sensor Map Section -->
-        <div class="map-section" style="margin-top: 2rem;">
-            <div class="section-header">
-                <h3>Sensor Locations</h3>
-                <p style="color: #9CA3AF; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Real-time bin fill levels across
-                    service areas</p>
-            </div>
-            <div class="chart-card" style="margin-top: 1rem;">
-                <div id="sensorMap" style="height: 500px; border-radius: 12px; overflow: hidden;"></div>
+
+        <!-- Heatmap Modal (Input Only) -->
+        <div id="hmModal" class="hm-modal">
+            <div class="hm-modal-content">
+                <div class="hm-modal-header">
+                    <div class="hm-modal-title">
+                        <i class="fas fa-keyboard"></i> Define Waste Data
+                    </div>
+                    <div class="hm-modal-header-ctrls">
+                        <button class="btn btn-outline btn-small" id="hmAutoBtn"
+                                onclick="hmAutoPopulate()" title="Populate from Supabase collection records">
+                            <i class="fas fa-database"></i> Auto-populate
+                        </button>
+                        <button class="hm-modal-close" onclick="closeHeatmapModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="hm-modal-body">
+                    <p class="hm-modal-sub">
+                        Enter waste volumes manualy below or use <strong>Auto-populate</strong>.
+                        The heatmap will be displayed on the dashboard below.
+                    </p>
+                    <div id="heatmapFormRoot" class="hm-form-root"></div>
+                </div>
+                <div class="hm-modal-footer">
+                    <button class="btn btn-primary" onclick="applyAndShowHeatmap()">
+                        <i class="fas fa-magic"></i> Generate Analytics
+                    </button>
+                    <button class="btn btn-outline" onclick="WasteHeatmap._clearForm()">
+                        <i class="fas fa-undo"></i> Clear
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Fill Level Trend Chart -->
-        <div class="map-section" style="margin-top: 2rem;">
-            <div class="section-header">
-                <h3>Fill Level Trends</h3>
-                <p style="color: #9CA3AF; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Historical fill level data for all
-                    sensors</p>
-            </div>
-            <div class="chart-card" style="margin-top: 1rem; padding: 20px;">
-                <div class="chart-container" style="height: 300px;">
-                    <canvas id="fillLevelTrendChart"></canvas>
+        <!-- Heatmap Result Section (On Dashboard) -->
+        <div id="hmResultSection" class="hm-result-section" style="display: none;">
+            <div class="hm-result-header">
+                <div>
+                    <h2 class="hm-result-title">
+                        <i class="fas fa-th"></i> Waste Analytics Heatmap
+                    </h2>
+                    <p class="hm-result-sub">Generated based on provided waste data</p>
+                </div>
+                <div class="hm-result-ctrls">
+                    <div class="hm-view-toggle" id="hmViewToggle">
+                        <button class="hm-vtbtn active" data-view="volume"
+                                onclick="WasteHeatmap.setView('volume'); hmToggle(this)">
+                            <i class="fas fa-box"></i> kg
+                        </button>
+                        <button class="hm-vtbtn" data-view="percentage"
+                                onclick="WasteHeatmap.setView('percentage'); hmToggle(this)">
+                            <i class="fas fa-percent"></i> %
+                        </button>
+                    </div>
+                    <button class="btn btn-outline btn-small" onclick="showHeatmapInput()">
+                        <i class="fas fa-edit"></i> Edit Data
+                    </button>
                 </div>
             </div>
+            
+            <div id="heatmapRoot" class="hm-vis-root"></div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="hmToast" class="hm-toast">
+            <div class="hm-toast-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="hm-toast-msg">Analytics generated successfully!</div>
         </div>
 
         <!-- Reports Section -->
@@ -126,7 +169,89 @@
         </div>
     </div>
 
+    <script src="./js/pages/heatmap.js"></script>
     <script type="module" src="./js/pages/analytics.js"></script>
+    <script>
+        /** Syncs the active state on the view-mode toggle buttons. */
+        function hmToggle(btn) {
+            document.querySelectorAll('.hm-vtbtn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        /** Triggered inside the modal's 'Generate' button */
+        function applyAndShowHeatmap() {
+            // Close modal first
+            closeHeatmapModal();
+
+            // Reveal result section on page
+            const resultSection = document.getElementById('hmResultSection');
+            if (resultSection) {
+                resultSection.style.display = 'block';
+            }
+
+            // Trigger the heatmap render logic
+            WasteHeatmap._applyForm();
+
+            // Show Toast
+            const toast = document.getElementById('hmToast');
+            if (toast) {
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            // Scroll to result
+            setTimeout(() => {
+                if (resultSection) {
+                    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+        }
+
+        /** Opens the modal in data-entry mode */
+        function showHeatmapInput() {
+            const modal = document.getElementById('hmModal');
+            if (modal) modal.classList.add('show');
+        }
+
+        function closeHeatmapModal() {
+            const modal = document.getElementById('hmModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        /**
+         * Auto-populates the heatmap from Supabase collection records
+         * (analyticsData is exposed by analytics.js after the module loads).
+         * Falls back gracefully if no records exist.
+         */
+        function hmAutoPopulate() {
+            const btn = document.getElementById('hmAutoBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...'; }
+
+            setTimeout(() => {
+                try {
+                    // analyticsData is a module-scoped var in analytics.js
+                    // We expose it via window.analyticsData in analytics.js
+                    const records = (window.analyticsData && window.analyticsData.collections) || [];
+                    const derived = WasteHeatmap.loadFromCollections(records);
+                    if (derived) {
+                        WasteHeatmap.update(derived);
+                        // Reflect in the form
+                        WasteHeatmap.renderForm('heatmapFormRoot');
+                    } else {
+                        alert('No collection records found in the database yet.');
+                    }
+                } catch(e) {
+                    console.error('Auto-populate error:', e);
+                }
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-database"></i> Auto-populate'; }
+            }, 300);
+        }
+
+        // Initialize the form on load (non-module context waits for DOMContentLoaded)
+        document.addEventListener('DOMContentLoaded', () => {
+            WasteHeatmap.renderForm('heatmapFormRoot');
+        });
+    </script>
 </body>
 
 </html>

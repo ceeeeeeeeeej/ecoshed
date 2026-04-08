@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-08T04:08:55.775Z */
 /* Dashboard Main Styles */
 
 /* Ecosystem Dashboard Container */
@@ -164,6 +164,23 @@
 .menu-item i {
     width: 20px;
     text-align: center;
+}
+
+.notification-dot {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+    display: none; /* Hidden by default */
+}
+
+.menu-item.has-notification .notification-dot {
+    display: block;
 }
 
 /* Sidebar Footer */

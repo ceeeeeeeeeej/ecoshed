@@ -64,7 +64,8 @@ jspm_packages/
 .yarn-integrity
 
 # Build outputs
-
+# Explicitly allowing dist/ folder
+!dist/
 build/
 
 # Temporary files

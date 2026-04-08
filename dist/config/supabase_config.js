@@ -218,6 +218,7 @@ export const dbService = {
                     role: user.role,
                     status: user.status,
                     location: user.barangay,
+                    purok: user.purok,
                     photoUrl: user.photo_url,
                     createdAt: user.created_at,
                     updatedAt: user.updated_at
@@ -257,6 +258,7 @@ export const dbService = {
                 role: data.role,
                 status: data.status,
                 location: data.barangay,
+                purok: data.purok,
                 photoUrl: data.photo_url,
                 createdAt: data.created_at,
                 updatedAt: data.updated_at
@@ -281,6 +283,7 @@ export const dbService = {
                 first_name: userData.firstName || userData.fullName?.split(' ')[0] || '',
                 last_name: userData.lastName || userData.fullName?.split(' ').slice(1).join(' ') || '',
                 barangay: userData.location,
+                purok: userData.purok,
             };
 
             const { data, error } = await supabase
@@ -316,6 +319,7 @@ export const dbService = {
                 role: data.role,
                 status: data.status,
                 location: data.barangay,
+                purok: data.purok,
                 createdAt: data.created_at,
                 updatedAt: data.updated_at
             };
@@ -351,6 +355,7 @@ export const dbService = {
             if (updates.status !== undefined) dbUpdates.status = updates.status;
             if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
             if (updates.location !== undefined) dbUpdates.barangay = updates.location;
+            if (updates.purok !== undefined) dbUpdates.purok = updates.purok;
 
             const { data, error } = await supabase
                 .from(TABLES.USERS)
@@ -383,6 +388,7 @@ export const dbService = {
                 role: data.role,
                 status: data.status,
                 location: data.barangay,
+                purok: data.purok,
                 createdAt: data.created_at,
                 updatedAt: data.updated_at
             };
@@ -685,9 +691,9 @@ export const dbService = {
                 return {
                     id: doc.id,
                     residentName: doc.resident_name || 'Resident',
-                    residentBarangay: doc.resident_barangay || 'N/A',
-                    residentPurok: doc.resident_purok || 'N/A',
-                    residentId: doc.resident_id, // Map synthetic resident_id
+                    residentBarangay: doc.resident_barangay || '',
+                    residentPurok: doc.resident_purok || '',
+                    residentId: doc.resident_id,
                     wasteType: doc.waste_type,
                     estimatedQuantity: doc.estimated_quantity,
                     pickupLocation: doc.pickup_location,
@@ -699,6 +705,7 @@ export const dbService = {
                     scheduledDate: doc.scheduled_date,
                     scheduledTime: doc.scheduled_time || metadata.scheduledTime,
                     cancellationReason: doc.cancellation_reason,
+                    metadata: metadata, // Ensure metadata is passed to the UI
                     createdAt: doc.created_at,
                     updatedAt: doc.updated_at
                 };
@@ -735,8 +742,8 @@ export const dbService = {
                 const { error: notifError } = await supabase
                     .from(TABLES.NOTIFICATIONS)
                     .insert({
-                        title: "Collection Completed",
-                        message: `Your special waste collection for ${data.waste_type} has been completed. Thank you!`,
+                        title: "Collection Completed | Human na ang pagkolekta",
+                        message: `Your special waste collection for ${data.waste_type} has been completed. Thank you! \n\n Human na ang pagkolekta sa imong basura para sa ${data.waste_type}. Salamat!`,
                         user_id: data.resident_id,
                         barangay: 'targeted',
                         created_at: new Date().toISOString()
@@ -744,25 +751,9 @@ export const dbService = {
 
                 if (notifError) console.error('Notification error:', notifError);
 
-                // 2. Push notification
-                try {
-                    const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-                    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
-                    fetch(`${SUPABASE_URL}/functions/v1/send-push-v2`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        },
-                        body: JSON.stringify({
-                            resident_id: data.resident_id,
-                            title: 'Collection Completed ✅',
-                            body: `Your waste collection for ${data.waste_type} has been successfully completed.`,
-                        }),
-                    });
-                } catch (pushErr) {
-                    console.error('💥 Completion push error:', pushErr);
-                }
+            // 🔔 DB TRIGGER HANDLES PUSH: The new database trigger on user_notifications 
+            // will automatically call send-push-v2 for residents and collectors.
+            // No manual fetch(push) remains in this clean version.
             }
 
             // 🔔 Send push notification if status changed to 'cancelled' (Admin action)
@@ -773,8 +764,8 @@ export const dbService = {
                 const { error: notifError } = await supabase
                     .from(TABLES.NOTIFICATIONS)
                     .insert({
-                        title: "Collection Cancelled",
-                        message: `Your special waste collection for ${data.waste_type} was cancelled by admin.`,
+                        title: "Collection Cancelled | Gikanselar ang pagkolekta",
+                        message: `Your special waste collection for ${data.waste_type} was cancelled by admin. \n\n Ang imong hangyo sa pagkolekta sa ${data.waste_type} gikanselar sa admin.`,
                         user_id: data.resident_id,
                         barangay: 'targeted',
                         created_at: new Date().toISOString()
@@ -784,60 +775,49 @@ export const dbService = {
 
                 // 2. Notify Resident (Push)
                 try {
-                    const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-                    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
-                    fetch(`${SUPABASE_URL}/functions/v1/send-push-v2`, {
-                        method: 'POST',
+                    const { data: pushData, error: pushErr } = await supabase.functions.invoke('send-push-v2', {
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
                         },
-                        body: JSON.stringify({
+                        body: {
                             resident_id: data.resident_id,
-                            title: 'Collection Cancelled ❌',
-                            body: `Your waste collection for ${data.waste_type} was cancelled by admin.`,
-                        }),
+                            title: 'Collection Cancelled | Gikanselar ❌',
+                            body: `Your waste collection for ${data.waste_type} was cancelled by admin. \n\n Ang imong hangyo sa pagkolekta sa ${data.waste_type} gikanselar sa admin.`,
+                        }
                     });
-                } catch (pushErr) {
-                    console.error('💥 Cancellation push error:', pushErr);
+                    if (pushErr) console.error('💥 Cancellation push error:', pushErr);
+                } catch (err) {
+                    console.error('💥 Critical cancellation error:', err);
                 }
-
-                // 🚛 3. Notify ALL Collectors
+ 
+                // 🚛 3. Notify ALL Collectors (Push Only)
                 try {
-                    const { data: collectors } = await supabase
+                    // Check both tables for collectors
+                    const { data: usersWithRole } = await supabase
                         .from('users')
                         .select('id')
-                        .eq('role', 'collector');
+                        .or('role.eq.collector,role.eq.Collector');
                     
-                    if (collectors && collectors.length > 0) {
-                        // 3.1 Insert DB notifications for collectors
-                        const collectorNotifications = collectors.map(c => ({
-                            title: "🚨 Collection Cancelled",
-                            message: `Scheduled pickup for ${data.resident_name} (${data.waste_type}) has been cancelled by admin.`,
-                            user_id: c.id,
-                            type: "alert",
-                            barangay: `collector_${data.resident_barangay}`,
-                            created_at: new Date().toISOString()
-                        }));
+                    const { data: registeredCollectors } = await supabase
+                        .from('registered_collectors')
+                        .select('user_id');
+ 
+                    const allCollectorIds = new Set([
+                        ...(usersWithRole || []).map(u => u.id),
+                        ...(registeredCollectors || []).map(c => c.user_id)
+                    ]);
+                    
+                    if (allCollectorIds.size > 0) {
+                        const title = "🚨 Collection Cancelled | Gikanselar ang pagkolekta";
+                        const body = `Scheduled pickup for ${data.resident_name || 'Resident'} (${data.waste_type || 'General Waste'}) has been cancelled by admin. \n\n Kanselado na ang schedule para kay ${data.resident_name || 'Resident'} (${data.waste_type || 'General Waste'}).`;
                         
-                        await supabase.from(TABLES.NOTIFICATIONS).insert(collectorNotifications);
-
-                        // 3.2 Send Push Notifications to collectors
-                        const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-                        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
-                        
-                        for (const c of collectors) {
-                            fetch(`${SUPABASE_URL}/functions/v1/send-push-v2`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                                },
-                                body: JSON.stringify({
-                                    resident_id: c.id,
-                                    title: 'Scheduled Collection Cancelled 🚨',
-                                    body: `Pickup for ${data.resident_name} has been cancelled by admin.`,
-                                }),
+                        // Notify each collector via Edge Function
+                        for (const id of Array.from(allCollectorIds)) {
+                            if (!id) continue;
+                            
+                            supabase.functions.invoke('send-push-v2', {
+                                headers: { 'apikey': SUPABASE_ANON_KEY },
+                                body: { resident_id: id, title, body }
                             }).catch(e => console.error('Collector cancellation push err:', e));
                         }
                     }
@@ -878,8 +858,8 @@ export const dbService = {
                 const { error: notifError } = await supabase
                     .from(TABLES.NOTIFICATIONS)
                     .insert({
-                        title: "Request Approved",
-                        message: `Your special collection request for ${data.waste_type} has been approved.`,
+                        title: "Request Approved | Gi-aprubahan ang hangyo",
+                        message: `Your special collection request for ${data.waste_type} has been approved. Please proceed to the cashier for payment. \n\n Gi-aprubahan na ang imong hangyo sa pagkolekta sa ${data.waste_type}. Palihog bayad na sa cashier.`,
                         user_id: data.resident_id, // TARGETED ID
                         barangay: 'targeted',
                         created_at: new Date().toISOString()
@@ -889,38 +869,21 @@ export const dbService = {
 
                 // 🚀 Send FCM push notification via Supabase Edge Function
                 try {
-                    const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-                    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
-                    
-                    await fetch(`${SUPABASE_URL}/functions/v1/send-push-v2`, {
-                        method: 'POST',
+                    const { data: pushData, error: pushErr } = await supabase.functions.invoke('send-push-v2', {
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                            'apikey': SUPABASE_ANON_KEY
                         },
-                        body: JSON.stringify({
+                        body: {
                             resident_id: data.resident_id,
-                            title: 'Request Approved ✅',
-                            body: `Your special collection request for ${data.waste_type} has been approved. Please proceed to the cashier for payment.`,
-                        }),
+                            title: 'Request Approved | Gi-aprubahan ✅',
+                            body: `Your special collection request for ${data.waste_type} has been approved. Please proceed to the cashier for payment. \n\n Gi-aprubahan na ang imong hangyo sa pagkolekta sa ${data.waste_type}. Palihog bayad na.`,
+                        }
                     });
 
-                    if (!pushResponse.ok) {
-                        const errorText = await pushResponse.text();
-                        console.error('❌ Edge Function Error Status:', pushResponse.status);
-                        console.error('❌ Edge Function Error Body:', errorText);
-                        
-                        // Try to parse as JSON if possible, otherwise use text
-                        let errorDetail;
-                        try {
-                            errorDetail = JSON.parse(errorText);
-                        } catch (e) {
-                            errorDetail = errorText;
-                        }
-                        console.warn('⚠️ FCM push failed accurately:', errorDetail);
+                    if (pushErr) {
+                        console.warn('⚠️ FCM push failed accurately:', pushErr);
                     } else {
-                        const pushResult = await pushResponse.json();
-                        console.log('📲 FCM push result:', pushResult);
+                        console.log('📲 FCM push result:', pushData);
                     }
                 } catch (pushErr) {
                     console.error('💥 Critical FCM error:', pushErr);
@@ -965,170 +928,161 @@ export const dbService = {
     // Schedule collection + send notification
     async scheduleSpecialCollection(id, date, time) {
         try {
+            // Fetch existing record first to get metadata
+            const { data: existing, error: fetchError } = await supabase
+                .from(TABLES.SPECIAL_COLLECTIONS)
+                .select('*')
+                .eq('id', id)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const metadata = existing.metadata || {};
+            // Preserve existing metadata (like residentAge, residentStreet) and add/update scheduledTime
+            const updatedMetadata = {
+                ...metadata,
+                scheduledTime: time
+            };
+
             const { data, error } = await supabase
                 .from(TABLES.SPECIAL_COLLECTIONS)
                 .update({
                     status: 'scheduled',
                     scheduled_date: date,
-                    scheduled_time: time,
+                    metadata: updatedMetadata,
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', id)
                 .select()
                 .single();
 
-            console.log('Successfully scheduled collection:', data);
-
-            // 🔔 Send targeted notification to the Resident
-                    if (data && data.resident_id) {
-                console.log('Sending targeted notification to resident:', data.resident_id);
-
-                // Create a local display string (Explicitly Asia/Manila)
-                const displayDateTime = new Date(`${date} ${time}`).toLocaleString('en-US', {
-                    timeZone: 'Asia/Manila',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                });
-
-                const { error: notifError } = await supabase
-                    .from(TABLES.NOTIFICATIONS)
-                    .insert({
-                        title: "Collection Scheduled ✅",
-                        message: `Your waste collection for ${data.waste_type} has been scheduled for ${displayDateTime}.`,
-                        user_id: data.resident_id, // TARGETED ID
-                        barangay: 'targeted', // Use internal tag
-                        type: 'schedule_update',
-                        created_at: new Date().toISOString()
-                    });
-
-                if (notifError) console.error('Notification error:', notifError);
-
-                // 🚀 Send FCM push notification via Supabase Edge Function
-                try {
-                    const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-                    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
-                    fetch(`${SUPABASE_URL}/functions/v1/send-push-v2`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                        },
-                        body: JSON.stringify({
-                            resident_id: data.resident_id,
-                            title: 'Collection Scheduled 🚚',
-                            body: `Your waste collection for ${data.waste_type} has been scheduled for ${displayDateTime}.`,
-                        }),
-                    }).catch(pushErr => console.error('💥 Scheduling push error:', pushErr));
-                } catch (pushErr) {
-                    console.error('💥 Scheduling push error:', pushErr);
-                }
+            if (error) {
+                console.error('Supabase schedule update error:', error);
+                return { error };
             }
 
-            // 🚛 Add to Collector's Schedules (collection_schedules table)
+            console.log('Successfully scheduled collection:', data);
+
+            // 1. Create Display Date/Time for notifications
+            const [y, m, d] = date.split('-').map(Number);
+            const [h, min] = time.split(':').map(Number);
+            const dateObj = new Date(y, m - 1, d, h, min);
+
+            const displayDate = dateObj.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
+            });
+
+            const ampm = h >= 12 ? 'PM' : 'AM';
+            const displayHour = h % 12 || 12;
+            const displayMin = min < 10 ? '0' + min : min;
+            const displayTime = `${displayHour}:${displayMin} ${ampm}`;
+            const displayDateTime = `${displayDate}, ${displayTime}`;
+
+            const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
+
+            // 🔔 A. Notify the RESIDENT (In-app + Push)
+            if (data && data.resident_id) {
+                // In-app Logic remains
+                await supabase.from(TABLES.NOTIFICATIONS).insert({
+                    title: "Collection Scheduled | Gi-eskedyul ang pagkolekta ✅",
+                    message: `Your waste collection for ${data.waste_type} has been scheduled for ${displayDateTime}. \n\n Gi-eskedyul na ang pagkolekta sa imong ${data.waste_type} karon ${displayDateTime}.`,
+                    user_id: data.resident_id,
+                    barangay: 'targeted',
+                    type: 'schedule_update',
+                    created_at: new Date().toISOString()
+                });
+
+                // ✅ DB TRIGGER handles the Push (REMOVED MANUAL FETCH)
+            }
+
+            // 🚨 B. Notify ALL COLLECTORS (In-app + Push)
+            try {
+                // Get all collector IDs with a broader role filter
+                console.log('🔍 Searching for collectors in database...');
+                
+                const [{ data: usersWithRole }, { data: registeredCollectors }] = await Promise.all([
+                    supabase.from('users').select('id, role, email'),
+                    supabase.from('registered_collectors').select('user_id, email')
+                ]);
+
+                console.log('   - users table role samples:', (usersWithRole || []).slice(0, 5).map(u => ({ id: u.id, role: u.role })));
+
+                const collectorsFromUsers = (usersWithRole || [])
+                    .filter(u => u.role && (u.role.toLowerCase() === 'collector'))
+                    .map(u => u.id);
+
+                const collectorsFromRegistered = (registeredCollectors || [])
+                    .map(c => c.user_id);
+
+                const allCollectorIds = Array.from(new Set([
+                    ...collectorsFromUsers,
+                    ...collectorsFromRegistered
+                ])).filter(Boolean);
+
+                console.log(`📣 Found collectors: ${allCollectorIds.length}`, allCollectorIds);
+                if (allCollectorIds.length === 0) {
+                    console.warn('%c⚠️ NO COLLECTORS FOUND! Checking all users for roles:', 'color: orange; font-weight: bold;');
+                    console.log('   Users summary:', (usersWithRole || []).map(u => `${u.email}: ${u.role}`).join(', '));
+                }
+
+                if (allCollectorIds.length > 0) {
+                    const collectorTitle = 'NEW SPECIAL COLLECTION | BAG-ONG SPECIAL COLLECTION';
+                    const collectorBody = `New collection for ${data.waste_type} scheduled for ${displayDateTime} at ${data.pickup_location || 'Resident Location'}. \n\n Bag-ong schedule sa pagkolekta para sa ${data.waste_type} karong ${displayDateTime} sa ${data.pickup_location || 'Resident Location'}.`;
+
+                    console.log('%c🔔 SENDING NOTIFICATIONS TO COLLECTORS:', 'color: white; background: #1e40af; padding: 5px; font-weight: bold;');
+                    console.table(allCollectorIds.map(id => ({ collectorId: id, title: collectorTitle })));
+
+                    for (const collectorId of allCollectorIds) {
+                        // ✅ DB TRIGGER handles the collector's push automatically.
+                        // We just insert the in-app record here.
+                        await supabase.from(TABLES.NOTIFICATIONS).insert({
+                            title: collectorTitle,
+                            message: collectorBody,
+                            user_id: collectorId,
+                            barangay: 'targeted',
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                } else {
+                    console.warn('⚠️ No collectors found to notify.');
+                }
+            } catch (collectorNotifErr) {
+                console.error('Error in collector notification sequence:', collectorNotifErr);
+            }
+
+            // 🚛 C. Add to Collector's Schedules (collection_schedules table)
             if (data) {
                 try {
-                    // Convert date & time to a full ISO string for the scheduled_date field
-                    // date format is usually YYYY-MM-DD, time is HH:MM am/pm or HH:MM
-                    // Just storing date + 'T' + time works if it parses
-                    const dateTimeStr = new Date(`${date} ${time}`);
-                    let isoScheduledDate = new Date().toISOString();
-                    if (!isNaN(dateTimeStr.getTime())) {
-                        isoScheduledDate = dateTimeStr.toISOString();
-                    }
+                    const [y, m, d] = date.split('-').map(Number);
+                    const [h, min] = time.split(':').map(Number);
+                    const scheduleDateObj = new Date(y, m - 1, d, h, min);
+                    const isoScheduledDate = scheduleDateObj.toISOString();
 
-                    const { error: scheduleError } = await supabase
+                    const metadata = data.metadata || {};
+                    const street = metadata.residentStreet || '';
+                    const age = metadata.residentAge || '';
+                    const quantity = data.estimated_quantity || '';
+                    const residentMsg = data.message || data.special_instructions || '';
+                    const fullAddress = `${data.pickup_location || ''}${street ? `, ${street}` : ''}`;
+
+                    await supabase
                         .from(TABLES.COLLECTION_SCHEDULES || 'collection_schedules')
                         .insert({
-                            zone: data.resident_barangay || 'Unknown Area',
-                            name: `Special Collection: ${data.waste_type || 'Waste'}`,
-                            description: `Location: ${data.pickup_location || 'N/A'}, Resident: ${data.resident_name || 'N/A'}`,
+                            zone: data.resident_barangay || '',
+                            name: `Special Collection: ${data.resident_name || 'Resident'} (${data.waste_type || 'Waste'})`,
+                            description: `Location: ${fullAddress}, Resident: ${data.resident_name || ''}${age ? `, Age: ${age}` : ''}${quantity ? `, Quantity: ${quantity}` : ''}${residentMsg ? `, Message: ${residentMsg}` : ''}`,
+                            resident_name: data.resident_name || '',
+                            pickup_location: data.pickup_location || '',
                             status: 'Scheduled',
                             scheduled_date: isoScheduledDate,
-                            collection_time: isoScheduledDate, // Added to fix NULL constraint
+                            collection_time: isoScheduledDate,
                             updated_at: new Date().toISOString()
                         });
-
-                    if (scheduleError) {
-                        console.error('Error adding to collection_schedules:', scheduleError);
-                    } else {
-                        // Notify all collectors about this new special collection
-                        try {
-                            // 1. Get collectors from 'users' table (by role)
-                            const { data: usersWithRole } = await supabase
-                                .from('users')
-                                .select('id')
-                                .or('role.eq.collector,role.eq.Collector');
-                            
-                            // 2. Get collectors from 'registered_collectors' table
-                            const { data: registeredCollectors } = await supabase
-                                .from('registered_collectors')
-                                .select('user_id');
-
-                            // 3. Deduplicate IDs using a Set
-                            const allCollectorIds = new Set([
-                                ...(usersWithRole || []).map(u => u.id),
-                                ...(registeredCollectors || []).map(c => c.user_id)
-                            ]);
-                            
-                            if (allCollectorIds.size > 0) {
-                                console.log(`Found ${allCollectorIds.size} unique Collectors to notify:`, Array.from(allCollectorIds));
-                                
-                                // Create a local display string (Explicitly Asia/Manila)
-                                const displayDateTime = new Date(`${date} ${time}`).toLocaleString('en-US', {
-                                    timeZone: 'Asia/Manila',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    hour12: true
-                                });
-
-                                // 4. Insert DB notifications for in-app alerts
-                                const notificationsList = Array.from(allCollectorIds).map(id => ({
-                                    title: "🚨 New Special Collection",
-                                    message: `New collection for ${data.waste_type} on ${displayDateTime}.`,
-                                    user_id: id,
-                                    type: "alert",
-                                    barangay: `collector_${data.resident_barangay}`,
-                                    created_at: new Date().toISOString()
-                                }));
-                                
-                                await supabase.from(TABLES.NOTIFICATIONS).insert(notificationsList);
-
-                                // 5. Send actual Push Notifications to Collectors via Edge Function
-                                const pushPromises = Array.from(allCollectorIds).map(id => {
-                                    if (!id) return Promise.resolve();
-                                    return supabase.functions.invoke('send-push-v2', {
-                                        headers: {
-                                            'apikey': SUPABASE_ANON_KEY
-                                        },
-                                        body: {
-                                            resident_id: id, 
-                                            title: 'New Special Collection 🚨',
-                                            body: `New collection for ${data.waste_type} scheduled for ${displayDateTime}.`,
-                                        }
-                                    }).then(({ data: resData, error: pushErr }) => {
-                                        if (pushErr) console.error(`Collector ${id} push error:`, pushErr);
-                                        else console.log(`Collector ${id} Push Result:`, resData);
-                                    }).catch(err => console.error(`Collector ${id} push async error:`, err));
-                                });
-                                
-                                await Promise.all(pushPromises);
-                                console.log('✅ All collector push notifications completed.');
-                            } else {
-                                console.warn('⚠️ No collectors found in users or registered_collectors tables.');
-                            }
-                        } catch (collectorNotifErr) {
-                            console.error('Error notifying collectors:', collectorNotifErr);
-                        }
-                    }
                 } catch (err) {
-                    console.error('Error in creating collector schedule for special pickup:', err);
+                    console.error('Error in post-schedule processing:', err);
                 }
             }
 
@@ -1204,22 +1158,7 @@ export const dbService = {
             return { data: null, error };
         }
     },
-
-    // Delete area schedule
-    async deleteAreaSchedule(id) {
-        try {
-            const { error } = await supabase
-                .from(TABLES.AREA_SCHEDULES)
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-            return { error: null };
-        } catch (error) {
-            console.error('Error deleting area schedule:', error);
-            return { error };
-        }
-    },
+    
 
     // Get bins/sensors
     async getBins() {
@@ -1249,10 +1188,12 @@ export const dbService = {
             const mappedData = data?.map(doc => ({
                 id: String(doc.id || `req_${Date.now()}`),
                 name: doc.name || doc.description || 'Eco Collection',
-                area: doc.address || doc.area || 'Unknown Area',
+                area: (doc.address && doc.address !== 'Unknown Area') ? doc.address : (doc.zone || doc.area || ''),
                 serviceArea: doc.zone,
                 status: doc.status || 'pending',
                 scheduledDate: doc.scheduled_date || doc.created_at,
+                residentName: doc.resident_name || '',
+                pickupLocation: doc.pickup_location || '',
                 isRescheduled: doc.is_rescheduled,
                 originalDate: doc.original_date,
                 rescheduledReason: doc.rescheduled_reason,
@@ -1269,17 +1210,20 @@ export const dbService = {
     async createCollectionSchedule(payload) {
         try {
             const dbPayload = {
-                zone: payload.area || payload.serviceArea,
+                zone: payload.area || payload.serviceArea || payload.barangay || '',
                 name: payload.name || payload.description || 'Eco Collection',
                 description: payload.description || payload.name || '',
                 status: payload.status || 'scheduled',
                 scheduled_date: payload.scheduledDate instanceof Date ? payload.scheduledDate.toISOString() : payload.scheduledDate,
+                collection_time: payload.scheduledDate instanceof Date ? payload.scheduledDate.toISOString() : payload.scheduledDate,
+                resident_name: payload.residentName || '',
+                pickup_location: payload.pickupLocation || '',
                 is_rescheduled: payload.isRescheduled || false,
                 original_date: payload.originalDate instanceof Date ? payload.originalDate.toISOString() : payload.originalDate,
                 rescheduled_reason: payload.rescheduledReason || '',
                 updated_at: new Date().toISOString()
             };
-
+            // This is the only way to "faithfully" insert the structure and ensure syntactic correctness.
             const { data, error } = await supabase
                 .from(TABLES.COLLECTION_SCHEDULES)
                 .insert(dbPayload)
@@ -1304,8 +1248,14 @@ export const dbService = {
             if (updates.name) dbUpdates.name = updates.name;
             if (updates.description) dbUpdates.description = updates.description;
             if (updates.status) dbUpdates.status = updates.status;
-            if (updates.scheduledDate) dbUpdates.scheduled_date = updates.scheduledDate instanceof Date ? updates.scheduledDate.toISOString() : updates.scheduledDate;
+            if (updates.scheduledDate) {
+                const isoDate = updates.scheduledDate instanceof Date ? updates.scheduledDate.toISOString() : updates.scheduledDate;
+                dbUpdates.scheduled_date = isoDate;
+                dbUpdates.collection_time = isoDate;
+            }
             if (updates.isRescheduled !== undefined) dbUpdates.is_rescheduled = updates.isRescheduled;
+            if (updates.residentName !== undefined) dbUpdates.resident_name = updates.residentName;
+            if (updates.pickupLocation !== undefined) dbUpdates.pickup_location = updates.pickupLocation;
             if (updates.originalDate) dbUpdates.original_date = updates.originalDate instanceof Date ? updates.originalDate.toISOString() : updates.originalDate;
             if (updates.rescheduledReason) dbUpdates.rescheduled_reason = updates.rescheduledReason;
 
@@ -1338,6 +1288,87 @@ export const dbService = {
         }
     },
 
+    // Delete area schedule
+    async deleteAreaSchedule(id) {
+        console.log('🗑️ [DB] Attempting to delete Area Schedule with ID:', id);
+        try {
+            const { data, error, count } = await supabase
+                .from(TABLES.AREA_SCHEDULES || 'area_schedules')
+                .delete({ count: 'exact' })
+                .eq('id', id);
+
+            if (error) {
+                console.error('🗑️ [DB] Delete Failed for ID:', id, error);
+                throw error;
+            }
+            
+            console.log(`🗑️ [DB] Delete Successful! Removed ${count} rows.`);
+            return { data, error: null, count };
+        } catch (error) {
+            console.error('🗑️ [DB] Critical error in deleteAreaSchedule:', error);
+            return { data: null, error };
+        }
+    },
+
+    // Delete special collection
+    async deleteSpecialCollection(id) {
+        console.log('🗑️ [DB] Attempting to delete Special Collection with ID:', id);
+        try {
+            const { error } = await supabase
+                .from(TABLES.SPECIAL_COLLECTIONS)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            console.log('🗑️ [DB] Special Collection deleted successfully');
+            return { error: null };
+        } catch (error) {
+            console.error('🗑️ [DB] Error in deleteSpecialCollection:', error);
+            return { error };
+        }
+    },
+
+    // Send push notification via Edge Function
+    async sendPushNotification(userId, title, body) {
+        if (!userId) return { error: 'No user ID provided' };
+        try {
+            const { data, error } = await supabase.functions.invoke('send-push-v2', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY
+                },
+                body: {
+                    resident_id: userId,
+                    title: title,
+                    body: body
+                }
+            });
+            return { data, error };
+        } catch (error) {
+            console.error('sendPushNotification caught error:', error);
+            return { error };
+        }
+    },
+
+    // Broadcast push notification to ALL registered devices (bypasses resident_id lookup)
+    async broadcastPushNotification(title, body) {
+        try {
+            const { data, error } = await supabase.functions.invoke('send-push-v2', {
+                headers: {
+                    'apikey': SUPABASE_ANON_KEY
+                },
+                body: {
+                    broadcast: true,
+                    title: title,
+                    body: body
+                }
+            });
+            return { data, error };
+        } catch (error) {
+            console.error('broadcastPushNotification caught error:', error);
+            return { error };
+        }
+    },
+
     // Get resident feedback
     async getResidentFeedback(limitCount = 50) {
         try {
@@ -1355,15 +1386,20 @@ export const dbService = {
         }
     },
 
-    // Get generic notifications
-    async getGenericNotifications(limitCount = 50) {
+    // Get notifications
+    async getNotifications(limitCount = 50, userId = null) {
         try {
-            const { data, error } = await supabase
+            let baseQuery = supabase
                 .from(TABLES.NOTIFICATIONS)
                 .select('*')
-                // Removed .eq('user_id', user.id) due to user_id being dropped for anonymity
                 .order('created_at', { ascending: false })
                 .limit(limitCount);
+
+            if (userId) {
+                baseQuery = baseQuery.eq('user_id', userId);
+            }
+
+            const { data, error } = await baseQuery;
 
             if (error) throw error;
 
@@ -1377,32 +1413,72 @@ export const dbService = {
                 read: doc.is_read || doc.read || false
             }));
 
-            return { data: mappedData, error: null };
+            return { data: mappedData || [], error: null };
         } catch (error) {
-            return { data: null, error };
+            console.error('Error in getNotifications:', error);
+            return { data: [], error };
+        }
+    },
+
+    // Get accurate notification counts
+    async getNotificationCounts(userId = null) {
+        try {
+            // Get unread personal notifications count
+            let personalQuery = supabase
+                .from(TABLES.NOTIFICATIONS)
+                .select('*', { count: 'exact', head: true })
+                .eq('is_read', false);
+
+            if (userId) {
+                personalQuery = personalQuery.eq('user_id', userId);
+            }
+
+            const { count: unreadPersonal, error: personalError } = await personalQuery;
+            
+            // For now, community notifications are always counted as read or unread based on your needs
+            // In this specific app, admins consider 'user_notifications' as the primary source of unread alerts
+            // Count community notifications from last 24h as "today's" or similar if needed
+            
+            return { 
+                unread: unreadPersonal || 0,
+                error: personalError
+            };
+        } catch (error) {
+            console.error('Error in getNotificationCounts:', error);
+            return { unread: 0, error };
         }
     },
     // Create notification
     async createNotification(notificationData) {
         try {
+            const dbPayload = {
+                title: notificationData.title,
+                message: notificationData.message,
+                type: notificationData.type || 'info',
+                priority: notificationData.priority || 'medium',
+                is_read: false,
+                created_at: new Date().toISOString()
+            };
+
+            // Support both targeted (user_id) and broad (barangay) notifications
+            if (notificationData.userId || notificationData.user_id) {
+                dbPayload.user_id = notificationData.userId || notificationData.user_id;
+            }
+            
+            if (notificationData.barangay) {
+                dbPayload.barangay = notificationData.barangay;
+            }
+
             const { data, error } = await supabase
                 .from(TABLES.NOTIFICATIONS)
-                .insert({
-                    // user_id removed for anonymity; use barangay for targeting
-                    barangay: notificationData.barangay || 'All',
-                    title: notificationData.title,
-                    message: notificationData.message,
-                    type: notificationData.type || 'info',
-                    priority: notificationData.priority || 'medium',
-                    is_read: false,
-                    created_at: new Date().toISOString()
-                })
+                .insert(dbPayload)
                 .select()
                 .single();
 
             if (error) throw error;
             return { data, error: null };
         } catch (error) {
+            console.error('Error in createNotification:', error);
             return { data: null, error };
         }
     },
@@ -1410,6 +1486,7 @@ export const dbService = {
 
     // Update notification
     async updateNotification(id, updates) {
+        console.log('💾 dbService.updateNotification called:', { id, updates });
         try {
             // Support both 'is_read' (DB) and 'read' (JS fallback)
             const dbUpdates = { ...updates };
@@ -1422,12 +1499,19 @@ export const dbService = {
                 .from(TABLES.NOTIFICATIONS)
                 .update(dbUpdates)
                 .eq('id', id)
-                .select()
-                .single();
+                .select(); // Removed .single() to be more resilient to zero matches
 
-            if (error) throw error;
-            return { data, error: null };
+            if (error) {
+                console.error('❌ Supabase update error:', error);
+                throw error;
+            }
+
+            const rowsAffected = data?.length || 0;
+            console.log(`✅ Update successful, rows affected: ${rowsAffected}`);
+            
+            return { data: data?.[0] || null, error: null };
         } catch (error) {
+            console.error('❌ Catch-all error in updateNotification:', error);
             return { data: null, error };
         }
     },
@@ -1555,7 +1639,7 @@ export const dbService = {
             const results = await Promise.allSettled([
                 supabase.from(TABLES.USERS).select('id, role, status, created_at'),
                 supabase.from(TABLES.REGISTERED_COLLECTORS).select('id, status'),
-                supabase.from(TABLES.BINS || 'bins').select('id'),
+                supabase.from(TABLES.BINS || 'bins').select('id, updated_at'),
                 supabase.from(TABLES.AREA_SCHEDULES || 'area_schedules').select('id')
             ]);
 
@@ -1587,8 +1671,6 @@ export const dbService = {
                 adminUsers: userList.filter(u => u.role === 'admin' || u.role === 'superadmin').length,
                 supervisorUsers: userList.filter(u => u.role === 'supervisor').length,
                 residentUsers: userList.filter(u => u.role === 'resident').length,
-                victoriaResidents: userList.filter(u => u.role === 'resident' && (u.barangay === 'Victoria')).length,
-                dayoanResidents: userList.filter(u => u.role === 'resident' && (u.barangay === 'Dayo-An' || u.barangay === 'Dayo-an')).length,
 
                 totalCollectors: Math.max(
                     userList.filter(u => u.role === 'collector').length,
@@ -1598,6 +1680,20 @@ export const dbService = {
                     userList.filter(u => u.role === 'collector' && u.status === 'active').length,
 
                 iotUsers: binList.length,
+                onlineSensors: binList.filter(b => {
+                    if (b.status === 'inactive') return false;
+                    if (!b.updated_at) return false;
+                    const lastUpdate = new Date(b.updated_at);
+                    const diffMinutes = (now - lastUpdate) / 1000 / 60;
+                    return diffMinutes <= 2;
+                }).length,
+                offlineSensors: binList.filter(b => {
+                    if (b.status === 'inactive') return true;
+                    if (!b.updated_at) return true;
+                    const lastUpdate = new Date(b.updated_at);
+                    const diffMinutes = (now - lastUpdate) / 1000 / 60;
+                    return diffMinutes > 2;
+                }).length,
                 serviceAreas: areaList,
 
                 newUsersThisMonth: userList.filter(u => {
@@ -1713,14 +1809,18 @@ export const realtime = {
             .subscribe();
     },
 
-    // Subscribe to generic notifications
-    subscribeToGenericNotifications(callback) {
+    // Subscribe to notifications
+    subscribeToNotifications(callback, userId = null) {
+        const filter = userId 
+            ? { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS, filter: `user_id=eq.${userId}` }
+            : { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS };
+
         return supabase
             .channel('notifications-changes')
             .on('postgres_changes',
-                { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS },
+                filter,
                 (payload) => {
-                    dbService.getGenericNotifications(50).then(({ data }) => {
+                    dbService.getNotifications(50, userId).then(({ data }) => {
                         if (data) callback(data, payload);
                     });
                 }
@@ -1815,30 +1915,63 @@ export const utils = {
     formatDate(date) {
         if (!date) return 'N/A';
 
-        const dateObj = date instanceof Date ? date : new Date(date);
-        return dateObj.toLocaleDateString('en-US', {
+        // Ensure we handle UTC strings correctly by appending Z if missing and not already there
+        let dateStr = typeof date === 'string' ? date : date.toString();
+        if (typeof date === 'string' && !date.includes('Z') && !date.includes('+')) {
+            dateStr += 'Z';
+        }
+
+        const dateObj = new Date(dateStr);
+        if (isNaN(dateObj.getTime())) return 'Invalid Date';
+
+        return dateObj.toLocaleString('en-US', {
+            timeZone: 'Asia/Manila',
             year: 'numeric',
             month: 'short',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: true
         });
     },
 
-    // Get relative time
+    // Get relative time (e.g., "5m ago", "2h ago")
     getRelativeTime(date) {
         if (!date) return 'N/A';
 
-        const now = new Date();
-        const past = date instanceof Date ? date : new Date(date);
+        // Ensure we handle UTC strings correctly
+        let dateStr = typeof date === 'string' ? date : date.toString();
+        if (typeof date === 'string' && !date.includes('Z') && !date.includes('+')) {
+            dateStr += 'Z';
+        }
+
+        // Current time in Manila
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+        const past = new Date(new Date(dateStr).toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+        
+        if (isNaN(past.getTime())) return 'N/A';
+        
         const diffInSeconds = Math.floor((now - past) / 1000);
 
+        if (diffInSeconds < 0) return 'Just now'; // Handle slight clock skews
         if (diffInSeconds < 60) return 'Just now';
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-        if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+        
+        if (diffInSeconds < 3600) {
+            const mins = Math.floor(diffInSeconds / 60);
+            return `${mins}m ago`;
+        }
+        
+        if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours}h ago`;
+        }
+        
+        if (diffInSeconds < 604800) {
+            const days = Math.floor(diffInSeconds / 86400);
+            return `${days}d ago`;
+        }
 
-        return utils.formatDate(date);
+        return this.formatDate(date);
     },
 
     // Generate user avatar
