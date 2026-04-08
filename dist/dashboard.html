@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSched Admin Dashboard</title>
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/dashboard.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.3);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="dashboard-container">
+        <!-- Mobile Sidebar Toggle -->
+        <button class="sidebar-toggle" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
+        </button>
+
+        <!-- Mobile Sidebar Overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="./assets/image/logo/logo1.png" alt="EcoSched Logo" class="logo-image">
+                    <span>EcoSched</span>
+                </div>
+                <button class="sidebar-close" id="sidebarClose">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-item active" data-page="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="menu-item" data-page="users">
+                    <i class="fas fa-users"></i>
+                    <span>Registered users</span>
+                </li>
+                <li class="menu-item" data-page="collectors">
+                    <i class="fas fa-truck"></i>
+                    <span>Collectors</span>
+                </li>
+                <li class="menu-item" data-page="schedules">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Schedules</span>
+                </li>
+                <li class="menu-item" data-page="special-collections">
+                    <i class="fas fa-star"></i>
+                    <span>Special Collections</span>
+                </li>
+                <li class="menu-item" data-page="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </li>
+                <li class="menu-item" data-page="feedback">
+                    <i class="fas fa-comments"></i>
+                    <span>Resident Feedback</span>
+                </li>
+                <li class="menu-item" data-page="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span>Notifications</span>
+                </li>
+                <li class="menu-item" data-page="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="user-profile" onclick="logout()" style="cursor: pointer;">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <span class="user-name" id="sidebarUserName">Admin User</span>
+                        <span class="user-role" id="sidebarUserRole">System Administrator</span>
+                        <span class="user-email" id="sidebarUserEmail">admin@ecosched.com</span>
+                    </div>
+                    <div class="logout-icon">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="sidebar-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h1 class="page-title">Dashboard</h1>
+                </div>
+
+                <div class="header-right">
+
+
+                    <div class="user-menu" id="userMenu">
+                        <button class="user-btn" id="userMenuButton" type="button">
+                            <div class="user-avatar-small">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="user-meta">
+                                <span class="user-meta-name" id="userMenuName">Admin User</span>
+                                <span class="user-meta-role" id="userMenuRole">System Administrator</span>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="user-dropdown" id="userMenuDropdown">
+                            <div class="user-dropdown-header">
+                                <div class="user-avatar-large" id="userMenuAvatarLarge">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <div>
+                                    <p class="user-dropdown-name" id="userDropdownName">Admin User</p>
+                                    <p class="user-dropdown-email" id="userDropdownEmail">admin@ecosched.com</p>
+                                </div>
+                            </div>
+                            <div class="user-dropdown-info">
+                                <div>
+                                    <span class="label">Role</span>
+                                    <p id="userDropdownRole">System Administrator</p>
+                                </div>
+                                <div>
+                                    <span class="label">Service Area</span>
+                                    <p id="userDropdownServiceArea">Head Office</p>
+                                </div>
+                                <div>
+                                    <span class="label">Last Login</span>
+                                    <p id="userDropdownLastLogin">Just now</p>
+                                </div>
+                            </div>
+                            <div class="user-dropdown-actions">
+                                <button class="btn btn-secondary" id="manageProfileBtn" type="button">Manage
+                                    Profile</button>
+                                <button class="btn btn-primary" id="userLogoutBtn" type="button">Logout</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="content">
+                <!-- Dashboard Page -->
+                <div id="dashboard-page" class="page active">
+                    <div class="stats-grid">
+                        <div class="stat-card" data-stat="total-users">
+                            <div class="stat-icon"
+                                style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Total Users</h3>
+                                <div class="stat-number" id="totalUsers">0</div>
+                                <div class="stat-detail"
+                                    style="margin-top: 4px; border-top: 1px solid rgba(0,0,0,0.05); padding-top: 4px;">
+                                    <span class="detail-item">Residents: <strong id="residentUsers">0</strong></span>
+                                    <span class="detail-item">Victoria: <strong id="victoriaResidents">0</strong></span>
+                                    <span class="detail-item">Dayo-an: <strong id="dayoanResidents">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="stat-card" data-stat="notifications">
+                            <div class="stat-icon"
+                                style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Notifications</h3>
+                                <div class="stat-number" id="totalNotifications">0</div>
+                                <div class="stat-change positive">New Updates</div>
+                                <div class="stat-detail">
+                                    <span class="detail-item">Feedback: <strong id="feedbackCount">0</strong></span>
+                                    <span class="detail-item">Special: <strong id="specialCount">0</strong></span>
+                                    <span class="detail-item">Collector: <strong id="collectorCount">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Routes Today stat card removed -->
+
+                        <div class="stat-card" data-stat="sensor-network">
+                            <div class="stat-icon"
+                                style="background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);">
+                                <i class="fas fa-network-wired"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>Sensor Network</h3>
+                                <div class="stat-number" id="iotSensors">0</div>
+                                <div class="stat-change positive">Active Nodes</div>
+                                <div class="stat-detail">
+                                    <span class="detail-item">High Fill: <strong id="highFillSensors">0</strong></span>
+                                    <span class="detail-item">Offline: <strong id="offlineSensors">0</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="dashboard-card" style="grid-column: 1 / -1;">
+                        <div class="card-header">
+                            <h3>Live Bin Status</h3>
+                            <div class="status-legend" style="display: flex; gap: 10px; font-size: 11px;">
+                                <span style="display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+                                    Normal</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; background: #f59e0b; border-radius: 50%;"></span>
+                                    Almost Full</span>
+                                <span style="display: flex; align-items: center; gap: 4px;"><span
+                                        style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%;"></span>
+                                    Critical</span>
+                            </div>
+                        </div>
+                        <div class="bin-list" id="liveBinList">
+                            <div class="empty-state" style="text-align: center; padding: 20px; color: #9ca3af;">
+                                <i class="fas fa-spinner fa-spin" style="font-size: 20px; margin-bottom: 8px;"></i>
+                                <p style="margin: 0; font-size: 13px;">Connecting to sensors...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual pages will be loaded here via iframe -->
+            <div id="page-content" class="page-content">
+                <iframe id="pageFrame" src="" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+            </div>
+    </div>
+    </main>
+    </div>
+
+    <!-- PDF Generation Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <!-- Bin Telemetry Modal -->
+    <div id="telemetryModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-microchip"></i> Bin Telemetry Details</h3>
+                <button class="close-modal" onclick="closeTelemetryModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="telemetry-info">
+                    <div id="telemetry-bin-id"
+                        style="font-size: 1.2rem; font-weight: 600; margin-bottom: 20px; color: #111827;">Bin #000</div>
+
+                    <div class="telemetry-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                        <div class="telemetry-item">
+                            <span class="label"
+                                style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Distance</span>
+                            <div id="tel-distance" style="font-weight: 500;">0.00 cm</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label"
+                                style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Fill
+                                Level</span>
+                            <div id="tel-fill" style="font-weight: 500;">0.00 %</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label"
+                                style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">GPS
+                                Status</span>
+                            <div id="tel-gps-status" style="font-weight: 500;">Searching...</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <span class="label"
+                                style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">GPS
+                                Fixes</span>
+                            <div id="tel-gps-sentences" style="font-weight: 500;">0</div>
+                        </div>
+                        <div class="telemetry-item" style="grid-column: span 2;">
+                            <span class="label"
+                                style="display: block; font-size: 0.75rem; color: #6b7280; margin-bottom: 4px;">Chars
+                                Processed</span>
+                            <div id="tel-gps-processed" style="font-weight: 500;">0</div>
+                        </div>
+                    </div>
+
+                    <div id="tel-gps-error-container"
+                        style="margin-top: 16px; padding: 10px; background: #fee2e2; border-radius: 6px; display: none;">
+                        <span class="label"
+                            style="display: block; font-size: 0.75rem; color: #b91c1c; margin-bottom: 4px;">Warnings/Errors</span>
+                        <div id="tel-gps-error" style="font-size: 0.85rem; color: #b91c1c;"></div>
+                    </div>
+
+                    <div
+                        style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 0.8rem; color: #6b7280;">
+                        Last Update: <span id="tel-updated">Just now</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeTelemetryModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/dashboard.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & Reports - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/analytics.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line"></i>
+                    Analytics & Reports
+                </h1>
+                <p class="page-subtitle">Track performance and generate insights</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="generateReport(event)">
+                    <i class="fas fa-download"></i>
+                    Generate Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Sensor Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-dumpster"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Average Fill Level</h3>
+                    <div class="metric-value" id="avgFillValue">---%</div>
+                    <div class="metric-change" id="avgFillChange">From all sensors</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Critical Bins</h3>
+                    <div class="metric-value" id="criticalBinsValue">---</div>
+                    <div class="metric-change" id="criticalBinsChange">Require immediate attention</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-broadcast-tower"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Active Sensors</h3>
+                    <div class="metric-value" id="activeSensorsValue">---</div>
+                    <div class="metric-change" id="activeSensorsChange">Online now</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Last Update</h3>
+                    <div class="metric-value" id="lastUpdateValue">---</div>
+                    <div class="metric-change" id="lastUpdateChange">Real-time monitoring</div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Sensor Map Section -->
+        <div class="map-section" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h3>Sensor Locations</h3>
+                <p style="color: #9CA3AF; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Real-time bin fill levels across
+                    service areas</p>
+            </div>
+            <div class="chart-card" style="margin-top: 1rem;">
+                <div id="sensorMap" style="height: 500px; border-radius: 12px; overflow: hidden;"></div>
+            </div>
+        </div>
+
+        <!-- Fill Level Trend Chart -->
+        <div class="map-section" style="margin-top: 2rem;">
+            <div class="section-header">
+                <h3>Fill Level Trends</h3>
+                <p style="color: #9CA3AF; font-size: 0.9rem; margin: 0.5rem 0 0 0;">Historical fill level data for all
+                    sensors</p>
+            </div>
+            <div class="chart-card" style="margin-top: 1rem; padding: 20px;">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="fillLevelTrendChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="reports-section">
+            <div class="section-header">
+                <h3>Recent Reports</h3>
+                <button class="btn btn-outline" onclick="createCustomReport()">
+                    <i class="fas fa-plus"></i>
+                    Custom Report
+                </button>
+            </div>
+            <div class="reports-grid" id="reportsGrid">
+                <!-- Reports will be loaded dynamically from Firebase -->
+                <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #9CA3AF;">
+                    <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="font-size: 1.1rem; margin: 0;">No reports available yet</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Generate your first report using the button above
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/analytics.js"></script>
+</body>
+
+</html>

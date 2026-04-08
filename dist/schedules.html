@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Management - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/schedules.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Schedule Management
+                </h1>
+                <p class="page-subtitle">Manage barangay collection schedules - reschedule anytime</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="openAddAreaScheduleModal()">
+                    <i class="fas fa-plus"></i>
+                    New Area Schedule
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <button class="btn btn-outline" onclick="previousMonth()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="currentMonth">December 2024</h2>
+                <button class="btn btn-outline" onclick="nextMonth()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar will be generated here -->
+            </div>
+        </div>
+
+        <!-- Schedule List -->
+        <div class="schedule-list-container">
+            <div class="list-header">
+                <h3>Upcoming Schedules</h3>
+                <div class="view-toggle">
+                    <button class="btn btn-outline active" onclick="toggleView('list')">
+                        <i class="fas fa-list"></i>
+                        List
+                    </button>
+                    <button class="btn btn-outline" onclick="toggleView('grid')">
+                        <i class="fas fa-th"></i>
+                        Grid
+                    </button>
+                </div>
+            </div>
+            <div class="schedule-list" id="scheduleList">
+                <!-- Schedules will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Schedule Modal -->
+    <div id="addScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Schedule Action</h3>
+                <button class="modal-close" onclick="closeAddScheduleModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" id="addScheduleForm">
+                <input type="hidden" id="isReschedule" name="isReschedule" value="false">
+                <input type="hidden" id="originalDate" name="originalDate" value="">
+                <input type="hidden" id="originalTime" name="originalTime" value="">
+                <div class="form-group">
+                    <label for="scheduleName">Schedule Name</label>
+                    <input type="text" id="scheduleName" name="scheduleName" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="area">Barangay</label>
+                        <input type="text" id="area" name="area" list="barangayList"
+                            placeholder="Enter or select barangay" required>
+                        <datalist id="barangayList">
+                            <option value="Victoria">
+                            <option value="Dayo-An">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="frequency">Frequency</label>
+                        <select id="frequency" name="frequency" required onchange="toggleFrequencyUI()">
+                            <option value="weekly">Weekly Recurring</option>
+                            <option value="one-time">One-time Event</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Recurring Days Selection -->
+                <div id="recurringDaysContainer" class="form-group">
+                    <label>Collection Days</label>
+                    <div class="checkbox-group"
+                        style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="monday"> Mon</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="tuesday"> Tue</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="wednesday"> Wed</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="thursday"> Thu</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="friday"> Fri</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="saturday"> Sat</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="sunday"> Sun</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="startTime">Start Time</label>
+                        <input type="time" id="startTime" name="startTime" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddScheduleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/schedules.js"></script>
+</body>
+
+</html>

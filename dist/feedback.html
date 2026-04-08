@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Feedback - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/feedback.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container">
+
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-info">
+                    <span id="feedbackCount">0 feedback items</span>
+                </div>
+                <div class="table-stats">
+                    <span id="unreadFeedbackCount">0 unread</span>
+                    <span class="divider">|</span>
+                    <span id="urgentFeedbackCount">0 urgent/high</span>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="feedbackTable">
+                    <thead>
+                        <tr>
+                            <th>Feedback</th>
+                            <th>Resident / Barangay</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedbackTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/feedback.js"></script>
+</body>
+</html>

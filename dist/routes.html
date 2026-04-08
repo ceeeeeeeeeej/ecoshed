@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route Management - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/routes.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-route"></i>
+                    Route Management
+                </h1>
+                <p class="page-subtitle">Plan and manage waste collection routes</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="openAddRouteModal()">
+                    <i class="fas fa-plus"></i>
+                    Create New Route
+                </button>
+            </div>
+        </div>
+
+        <!-- Route Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-route"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Total Routes</h3>
+                    <div class="stat-number" id="totalRoutes">89</div>
+                    <div class="stat-change positive">+5 this week</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Completed Today</h3>
+                    <div class="stat-number" id="completedRoutes">67</div>
+                    <div class="stat-change positive">75% completion rate</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>In Progress</h3>
+                    <div class="stat-number" id="inProgressRoutes">22</div>
+                    <div class="stat-change">25% of total</div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>Delayed</h3>
+                    <div class="stat-number" id="delayedRoutes">3</div>
+                    <div class="stat-change negative">3% delay rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-container">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Search Routes</label>
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search by route name..." id="routeSearch">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="delayed">Delayed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Area</label>
+                    <select class="filter-select" id="areaFilter">
+                        <option value="">All Areas</option>
+                        <option value="victoria">Victoria</option>
+                        <option value="dayo-an">Dayo-An</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        <i class="fas fa-refresh"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routes Table -->
+        <div class="table-container">
+            <div class="table-header">
+                <div class="table-actions">
+                    <button class="btn btn-outline" onclick="optimizeAllRoutes()">
+                        <i class="fas fa-route"></i>
+                        Optimize All
+                    </button>
+                    <button class="btn btn-outline" onclick="exportRoutes()">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                </div>
+                <div class="table-info">
+                    <span id="routeCount">89 routes</span>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="routesTable">
+                    <thead>
+                        <tr>
+                            <th>Route</th>
+                            <th>Area</th>
+                            <th>Status</th>
+                            <th>Collector</th>
+                            <th>Progress</th>
+                            <th>ETA</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="routesTableBody">
+                        <!-- Routes will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Add Route Modal -->
+        <div id="addRouteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Create New Route</h3>
+                    <button class="modal-close" onclick="closeAddRouteModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form class="modal-form" id="addRouteForm">
+                    <div class="form-group">
+                        <label for="routeName">Route Name</label>
+                        <input type="text" id="routeName" name="routeName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="area">Area</label>
+                            <select id="area" name="area" required>
+                                <option value="">Select Area</option>
+                                <option value="victoria">Victoria</option>
+                                <option value="dayo-an">Dayo-An</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="collector">Assigned Collector</label>
+                            <select id="collector" name="collector" required>
+                                <option value="">Select Collector</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="startTime">Start Time</label>
+                            <input type="time" id="startTime" name="startTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="estimatedDuration">Duration (hours)</label>
+                            <input type="number" id="estimatedDuration" name="estimatedDuration" min="1" max="12" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddRouteModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Route</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Route Modal -->
+        <div id="viewRouteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Route Details</h3>
+                    <button class="modal-close" onclick="closeViewRouteModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Route Name</label>
+                        <p id="viewRouteName"></p>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Area</label>
+                            <p id="viewArea"></p>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <p id="viewStatus"></p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Assigned Collector</label>
+                            <p id="viewCollector"></p>
+                        </div>
+                        <div class="form-group">
+                            <label>ETA</label>
+                            <p id="viewEta"></p>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Start Time</label>
+                            <p id="viewStartTime"></p>
+                        </div>
+                        <div class="form-group">
+                            <label>Duration (hours)</label>
+                            <p id="viewEstimatedDuration"></p>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Description</label>
+                        <p id="viewDescription"></p>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeViewRouteModal()">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Route Modal -->
+        <div id="editRouteModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Route</h3>
+                    <button class="modal-close" onclick="closeEditRouteModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form class="modal-form" id="editRouteForm">
+                    <div class="form-group">
+                        <label for="editRouteName">Route Name</label>
+                        <input type="text" id="editRouteName" name="editRouteName" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editArea">Area</label>
+                            <select id="editArea" name="editArea" required>
+                                <option value="victoria">Victoria</option>
+                                <option value="dayo-an">Dayo-An</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCollector">Assigned Collector</label>
+                            <select id="editCollector" name="editCollector" required>
+                                <option value="">Select Collector</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStartTime">Start Time</label>
+                            <input type="time" id="editStartTime" name="editStartTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editEstimatedDuration">Duration (hours)</label>
+                            <input type="number" id="editEstimatedDuration" name="editEstimatedDuration" min="1" max="12" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDescription">Description</label>
+                        <textarea id="editDescription" name="editDescription" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditRouteModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/routes.js"></script>
+</body>
+</html>
+
