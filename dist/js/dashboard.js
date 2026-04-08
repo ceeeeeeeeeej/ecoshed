@@ -1,7 +1,7 @@
 /* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
 // Dashboard JavaScript
 // Simplified version without Firebase dependencies
-import { supabase, TABLES, authService, dbService, realtime, utils } from '../config/supabase_config.js';
+import { supabase, TABLES, authService, dbService, realtime, utils, SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/supabase_config.js';
 import { setupActivityRefresh } from './utils/activity_display.js';
 
 // Global variables
@@ -817,7 +817,7 @@ function navigateToPage(page) {
 // Load dashboard data
 async function loadDashboardData() {
     try {
-        console.log('Loading dashboard data...');
+        console.log('📡 Dashboard Data Loading sequence started...');
 
         // Base stats structure
         let stats = {
@@ -834,12 +834,19 @@ async function loadDashboardData() {
             dayoanResidents: 0
         };
 
-        // Try to load real stats from Firestore
+        // Try to load real stats from Supabase
         try {
             if (dbService && dbService.getSystemStats) {
+                console.log('📡 Fetching system stats from Supabase...');
                 const { data, error } = await dbService.getSystemStats();
-                if (error) throw error;
+                
+                if (error) {
+                    console.error('❌ Supabase Stats Error:', error.message || error);
+                    throw error;
+                }
+                
                 if (data) {
+                    console.log('✅ Stats received:', data);
                     stats.totalUsers = data.totalUsers ?? 0;
                     stats.adminUsers = data.adminUsers ?? 0;
                     stats.totalCollectorsBreakdown = data.totalCollectors ?? 0;
@@ -851,10 +858,14 @@ async function loadDashboardData() {
                     stats.residentUsers = data.residentUsers ?? 0;
                     stats.victoriaResidents = data.victoriaResidents ?? 0;
                     stats.dayoanResidents = data.dayoanResidents ?? 0;
+                } else {
+                    console.warn('⚠️ No stats data returned from Supabase.');
                 }
+            } else {
+                console.error('❌ dbService.getSystemStats is not defined!');
             }
         } catch (statsError) {
-            console.warn('Failed to load live stats, falling back to mock data:', statsError);
+            console.warn('⚠️ Failed to load live stats, falling back to mock data:', statsError);
             // Mock fallback for local development
             stats = {
                 totalUsers: 0,
@@ -1513,8 +1524,7 @@ async function triggerBinFullNotification(bin) {
     console.log(`🚀 [Bin Alert] Finding collectors in ${barangay} for bin ${bin.bin_id}`);
 
     try {
-        const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ucEKoeLHhbxBVtzDABvVIg_eKIhIQ31';
+        // Keys are imported from supabase_config.js
 
         // 1. Resolve collectors for this barangay locally in the dashboard
         const { data: collectors, error: userError } = await supabase
