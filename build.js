@@ -52,7 +52,12 @@ const FILES_TO_PROCESS = {
         'deploy/js/feedback.js',
         'deploy/js/analytics.js',
         'deploy/js/notifications.js',
-        'deploy/js/settings.js'
+        'deploy/js/settings.js',
+        'deploy/js/bin-locations.js',
+        'deploy/js/bins.js',
+        'deploy/js/collectors.js',
+        'deploy/js/heatmap.js',
+        'deploy/js/registered_collectors.js'
     ],
     config: [
         'config/supabase_config.js'

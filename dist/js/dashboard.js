@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-08T04:08:55.775Z */
+/* Build: 1.0.0 - 2026-04-08T04:09:36.438Z */
 // Dashboard JavaScript
 // Simplified version without Firebase dependencies
 import { supabase, TABLES, authService, dbService, realtime, utils, SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/supabase_config.js';
