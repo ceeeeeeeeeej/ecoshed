@@ -1,6 +1,6 @@
 // Dashboard JavaScript
 // Simplified version without Firebase dependencies
-import { supabase, TABLES, authService, dbService, realtime, utils } from '../config/supabase_config.js';
+import { supabase, TABLES, authService, dbService, realtime, utils, SUPABASE_URL, SUPABASE_ANON_KEY } from '../config/supabase_config.js';
 import { setupActivityRefresh } from './utils/activity_display.js';
 
 // Global variables
@@ -803,12 +803,19 @@ async function loadDashboardData() {
             collectorCount: 0
         };
 
-        // Try to load real stats from Firestore
+        // Try to load real stats from Supabase
         try {
             if (dbService && dbService.getSystemStats) {
+                console.log('📡 Fetching system stats from Supabase...');
                 const { data, error } = await dbService.getSystemStats();
-                if (error) throw error;
+                
+                if (error) {
+                    console.error('❌ Supabase Stats Error:', error.message || error);
+                    throw error;
+                }
+                
                 if (data) {
+                    console.log('✅ Stats received:', data);
                     stats.totalUsers = data.totalUsers ?? 0;
                     stats.adminUsers = data.adminUsers ?? 0;
                     stats.totalCollectorsBreakdown = data.totalCollectors ?? 0;
@@ -820,10 +827,14 @@ async function loadDashboardData() {
                     stats.residentUsers = data.residentUsers ?? 0;
                     stats.onlineSensors = data.onlineSensors ?? 0;
                     stats.offlineSensors = data.offlineSensors ?? 0;
+                } else {
+                    console.warn('⚠️ No stats data returned from Supabase.');
                 }
+            } else {
+                console.error('❌ dbService.getSystemStats is not defined!');
             }
         } catch (statsError) {
-            console.warn('Failed to load live stats from getSystemStats:', statsError);
+            console.warn('⚠️ Failed to load live stats from getSystemStats, falling back to mock:', statsError);
         }
 
         // Fetch Notification Stats separately
@@ -1512,8 +1523,7 @@ async function triggerBinFullNotification(bin) {
     console.log(`🚀 [Bin Alert] Finding collectors in ${barangay} for bin ${bin.bin_id}`);
 
     try {
-        const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ucEKoeLHhbxBVtzDABvVIg_eKIhIQ31';
+        // Keys are imported from supabase_config.js
 
         // 1. Resolve collectors for this barangay locally in the dashboard
         const { data: collectors, error: userError } = await supabase

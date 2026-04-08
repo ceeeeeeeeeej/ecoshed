@@ -9,6 +9,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 // Initialize Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export { SUPABASE_URL, SUPABASE_ANON_KEY };
 
 // Database table names
 export const TABLES = {
@@ -1631,6 +1632,7 @@ export const dbService = {
 
     // Get system statistics
     async getSystemStats() {
+        console.log('📊 getSystemStats: Initiating parallel queries...');
         try {
             // Fetch users, collectors, bins, and areas in parallel
             // Use allSettled so one failure doesn't break everything
