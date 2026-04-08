@@ -1,0 +1,491 @@
+/**
+ * WasteHeatmap — Dynamic Waste Analytics Heatmap
+ * ================================================
+ * Renders a sector × waste-type heatmap where ALL colors are
+ * assigned purely by relative position between the min and max
+ * values in the dataset. No values are ever hardcoded.
+ *
+ * Public API:
+ *   WasteHeatmap.render(data, containerId?)   — first render
+ *   WasteHeatmap.update(data)                 — live update / re-render
+ *   WasteHeatmap.setView(mode)                — 'volume' | 'percentage'
+ *   WasteHeatmap.loadFromCollections(records) — derive data from Supabase records
+ */
+
+const WasteHeatmap = (() => {
+
+    // ── Configuration ──────────────────────────────────────────────
+    const SECTORS = [
+        { key: 'residential',   label: 'Residential',   icon: '🏠' },
+        { key: 'commercial',    label: 'Commercial',     icon: '🏪' },
+        { key: 'industrial',    label: 'Industrial',     icon: '🏭' },
+        { key: 'institutional', label: 'Institutional',  icon: '🏫' }
+    ];
+
+    const WASTE_TYPES = [
+        { key: 'biodegradable', label: 'Biodegradable', unit: 'kg' },
+        { key: 'recyclable',    label: 'Recyclable',    unit: 'kg' },
+        { key: 'residual',      label: 'Residual',      unit: 'kg' },
+        { key: 'special',       label: 'Special',       unit: 'kg' }
+    ];
+
+    /**
+     * Keyword maps: these only classify existing records from Supabase
+     * into category buckets — they do NOT produce any values.
+     */
+    const WASTE_KEYWORDS = {
+        biodegradable:  ['bio', 'organic', 'food', 'garden', 'plant'],
+        recyclable:     ['recycl', 'plastic', 'metal', 'paper', 'glass', 'tin', 'card'],
+        special:        ['special', 'hazard', 'chemical', 'electronic', 'e-waste', 'toxic'],
+        residual:       [] // fallback
+    };
+
+    const SECTOR_KEYWORDS = {
+        commercial:    ['commerc', 'market', 'mall', 'shop', 'store', 'business'],
+        industrial:    ['industr', 'factory', 'manufact', 'warehouse', 'plant'],
+        institutional: ['school', 'hospit', 'clinic', 'offic', 'gov', 'univers', 'church']
+        // residential is the default fallback
+    };
+
+    // ── State ───────────────────────────────────────────────────────
+    let _currentData = null;   // { sector: { wasteType: number } }
+    let _viewMode    = 'volume'; // 'volume' | 'percentage'
+    let _containerId = 'heatmapRoot';
+
+    // ── Color Engine ────────────────────────────────────────────────
+    /**
+     * Maps a normalised value t ∈ [0, 1] to an HSL color on the
+     * green → yellow → orange → red gradient.
+     *
+     * t=0  →  green  (#22c55e  hue≈142)
+     * t=0.5 → yellow (#eab308  hue≈48)
+     * t=1   →  red   (#ef4444  hue≈0)
+     */
+    function interpolateColor(t) {
+        // Clamp
+        t = Math.max(0, Math.min(1, t));
+        // HSL hue: 140 (green) → 48 (yellow) → 0 (red)
+        const hue = Math.round(140 - t * 140);
+        const sat = Math.round(70 + t * 20);   // 70%→90%
+        const lgt = Math.round(42 - t * 10);   // 42%→32%
+        return `hsl(${hue},${sat}%,${lgt}%)`;
+    }
+
+    /** Lighter version for gradient stop */
+    function interpolateColorLight(t) {
+        t = Math.max(0, Math.min(1, t));
+        const hue = Math.round(140 - t * 140);
+        const sat = Math.round(60 + t * 20);
+        const lgt = Math.round(55 - t * 10);
+        return `hsl(${hue},${sat}%,${lgt}%)`;
+    }
+
+    /** Gets a human-readable intensity label for a t value */
+    function intensityLabel(t) {
+        if (t >= 0.75) return 'HIGH';
+        if (t >= 0.50) return 'MOD-HIGH';
+        if (t >= 0.25) return 'MEDIUM';
+        return 'LOW';
+    }
+
+    // ── Data Utilities ──────────────────────────────────────────────
+    /**
+     * Flattens a data matrix into all cell values, returning { min, max }.
+     * Returns { min:0, max:0 } when the matrix is empty.
+     */
+    function computeRange(data) {
+        const values = [];
+        for (const s of SECTORS) {
+            for (const w of WASTE_TYPES) {
+                const v = data?.[s.key]?.[w.key];
+                if (typeof v === 'number' && isFinite(v)) values.push(v);
+            }
+        }
+        if (values.length === 0) return { min: 0, max: 0 };
+        return { min: Math.min(...values), max: Math.max(...values) };
+    }
+
+    /** Normalises a value v into [0,1] given { min, max }. */
+    function normalise(v, range) {
+        if (range.max === range.min) return 0;
+        return (v - range.min) / (range.max - range.min);
+    }
+
+    /** Total waste across all cells. */
+    function totalWaste(data) {
+        let total = 0;
+        for (const s of SECTORS) for (const w of WASTE_TYPES) total += data?.[s.key]?.[w.key] || 0;
+        return total;
+    }
+
+    // ── Grid Renderer ───────────────────────────────────────────────
+    function buildGrid(data) {
+        const range = computeRange(data);
+        const grand = totalWaste(data);
+
+        const numCols = WASTE_TYPES.length + 1;
+        const grid = document.createElement('div');
+        grid.className = 'hm-grid';
+        grid.style.gridTemplateColumns = `160px repeat(${WASTE_TYPES.length}, 1fr)`;
+
+        // ── Corner ──
+        const corner = document.createElement('div');
+        corner.className = 'hm-th hm-corner';
+        corner.innerHTML = `<i class="fas fa-layer-group"></i><span>Sector / Type</span>`;
+        grid.appendChild(corner);
+
+        // ── Column Headers ──
+        for (const wt of WASTE_TYPES) {
+            const th = document.createElement('div');
+            th.className = 'hm-th hm-col-head';
+            th.innerHTML = `<i class="fas ${wasteIcon(wt.key)}"></i><span>${wt.label}</span>`;
+            grid.appendChild(th);
+        }
+
+        // ── Data Rows ──
+        for (let si = 0; si < SECTORS.length; si++) {
+            const sector = SECTORS[si];
+
+            // Row header
+            const rh = document.createElement('div');
+            rh.className = 'hm-th hm-row-head';
+            rh.innerHTML = `<span class="hm-sec-icon">${sector.icon}</span><span>${sector.label}</span>`;
+            grid.appendChild(rh);
+
+            for (let wi = 0; wi < WASTE_TYPES.length; wi++) {
+                const wt = WASTE_TYPES[wi];
+                const raw = data?.[sector.key]?.[wt.key] || 0;
+                const t   = normalise(raw, range);
+                const pct = grand > 0 ? ((raw / grand) * 100).toFixed(1) : '0.0';
+
+                const bg0 = interpolateColor(t);
+                const bg1 = interpolateColorLight(t);
+
+                const displayVal = _viewMode === 'percentage'
+                    ? `${pct}%`
+                    : raw > 0 ? raw.toLocaleString() : '—';
+                const subVal = _viewMode === 'percentage'
+                    ? `${raw > 0 ? raw.toLocaleString() : '—'} kg`
+                    : `${pct}% of total`;
+
+                const cell = document.createElement('div');
+                cell.className = 'hm-cell';
+                cell.style.background = `linear-gradient(135deg, ${bg0}, ${bg1})`;
+                cell.title = `${sector.label} · ${wt.label}: ${raw.toLocaleString()} kg (${pct}%)`;
+                cell.dataset.value = raw;
+                cell.dataset.t = t.toFixed(3);
+
+                cell.innerHTML = `
+                    <div class="hm-val">${displayVal}</div>
+                    <div class="hm-unit">${_viewMode === 'percentage' ? 'of total' : 'kg'}</div>
+                    <div class="hm-sub">${subVal}</div>
+                    <span class="hm-badge">${intensityLabel(t)}</span>
+                `;
+
+                // Staggered fade-in
+                const delay = (si * WASTE_TYPES.length + wi) * 45;
+                cell.style.opacity = '0';
+                cell.style.transform = 'scale(0.88)';
+                setTimeout(() => {
+                    cell.style.opacity = '1';
+                    cell.style.transform = 'scale(1)';
+                }, delay + 80);
+
+                grid.appendChild(cell);
+            }
+        }
+
+        return { grid, range, grand };
+    }
+
+    function wasteIcon(key) {
+        const icons = {
+            biodegradable: 'fa-leaf',
+            recyclable:    'fa-recycle',
+            residual:      'fa-trash',
+            special:       'fa-radiation'
+        };
+        return icons[key] || 'fa-box';
+    }
+
+    // ── Legend ──────────────────────────────────────────────────────
+    function buildLegend(range) {
+        const leg = document.createElement('div');
+        leg.className = 'hm-legend';
+
+        // Gradient bar (CSS gradient)
+        leg.innerHTML = `
+            <span class="hm-leg-label">Low</span>
+            <div class="hm-leg-bar">
+                <div class="hm-leg-fill"></div>
+            </div>
+            <span class="hm-leg-label">High</span>
+            <div class="hm-leg-badges">
+                <span class="hm-badge-pill hm-t0">Low</span>
+                <span class="hm-badge-pill hm-t1">Medium</span>
+                <span class="hm-badge-pill hm-t2">Mod-High</span>
+                <span class="hm-badge-pill hm-t3">High</span>
+            </div>
+            <div class="hm-range-note">
+                Range: <strong>${range.min.toLocaleString()}</strong> – <strong>${range.max.toLocaleString()}</strong> kg
+            </div>
+        `;
+        return leg;
+    }
+
+    // ── Summary Cards ───────────────────────────────────────────────
+    function buildSummary(data, grand) {
+        // Highest/lowest sector by total
+        let maxSector = { label: '', val: -Infinity };
+        let minSector = { label: '', val: Infinity };
+        for (const s of SECTORS) {
+            const st = WASTE_TYPES.reduce((sum, w) => sum + (data?.[s.key]?.[w.key] || 0), 0);
+            if (st > maxSector.val) maxSector = { label: s.label, val: st };
+            if (st < minSector.val) minSector = { label: s.label, val: st };
+        }
+        // Dominant waste type
+        let maxWt = { label: '', val: -Infinity };
+        for (const w of WASTE_TYPES) {
+            const tot = SECTORS.reduce((sum, s) => sum + (data?.[s.key]?.[w.key] || 0), 0);
+            if (tot > maxWt.val) maxWt = { label: w.label, val: tot };
+        }
+
+        const row = document.createElement('div');
+        row.className = 'hm-summary';
+        row.innerHTML = `
+            <div class="hm-stat">
+                <i class="fas fa-arrow-up" style="color:#ef4444"></i>
+                <div><div class="hm-sv">${maxSector.label}</div><div class="hm-sl">Highest Generator</div></div>
+            </div>
+            <div class="hm-stat">
+                <i class="fas fa-arrow-down" style="color:#22c55e"></i>
+                <div><div class="hm-sv">${minSector.label}</div><div class="hm-sl">Lowest Generator</div></div>
+            </div>
+            <div class="hm-stat">
+                <i class="fas fa-trophy" style="color:#f97316"></i>
+                <div><div class="hm-sv">${maxWt.label}</div><div class="hm-sl">Dominant Waste Type</div></div>
+            </div>
+            <div class="hm-stat">
+                <i class="fas fa-weight-hanging" style="color:#3b82f6"></i>
+                <div><div class="hm-sv">${grand.toLocaleString()} kg</div><div class="hm-sl">Total Waste Volume</div></div>
+            </div>
+        `;
+        return row;
+    }
+
+    // ── Full Render ─────────────────────────────────────────────────
+    function render(data, containerId) {
+        if (containerId) _containerId = containerId;
+        _currentData = deepClone(data);
+
+        const root = document.getElementById(_containerId);
+        if (!root) { console.warn('[WasteHeatmap] container not found:', _containerId); return; }
+
+        root.innerHTML = '';
+
+        if (!hasAnyData(data)) {
+            root.innerHTML = `
+                <div class="hm-empty">
+                    <i class="fas fa-inbox"></i>
+                    <p>No waste data available. Enter values in the form above and click <strong>Apply</strong>.</p>
+                </div>`;
+            return;
+        }
+
+        const { grid, range, grand } = buildGrid(data);
+        const legend  = buildLegend(range);
+        const summary = buildSummary(data, grand);
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'hm-wrapper';
+        wrapper.appendChild(legend);
+
+        const gridWrap = document.createElement('div');
+        gridWrap.className = 'hm-scroll';
+        gridWrap.appendChild(grid);
+        wrapper.appendChild(gridWrap);
+        wrapper.appendChild(summary);
+
+        root.appendChild(wrapper);
+    }
+
+    // ── Input form ──────────────────────────────────────────────────
+    /**
+     * Renders the data-entry form into `formContainerId`.
+     * On submit, calls render() with the collected values.
+     */
+    function renderForm(formContainerId) {
+        const fc = document.getElementById(formContainerId);
+        if (!fc) return;
+
+        fc.innerHTML = '';
+
+        const form = document.createElement('form');
+        form.className = 'hm-form';
+        form.id = 'heatmapDataForm';
+        form.setAttribute('autocomplete', 'off');
+
+        // Header row (waste type labels)
+        const headerRow = document.createElement('div');
+        headerRow.className = 'hm-form-row hm-form-header';
+        headerRow.style.gridTemplateColumns = `170px repeat(${WASTE_TYPES.length}, 1fr)`;
+        headerRow.innerHTML = `<div class="hm-form-cell hm-form-rowlabel"></div>` +
+            WASTE_TYPES.map(w => `
+                <div class="hm-form-cell">
+                    <i class="fas ${wasteIcon(w.key)}"></i>
+                    ${w.label.toUpperCase()} <em>(KG)</em>
+                </div>`).join('');
+        form.appendChild(headerRow);
+
+        // One row per sector
+        for (const sector of SECTORS) {
+            const row = document.createElement('div');
+            row.className = 'hm-form-row';
+            row.style.gridTemplateColumns = `170px repeat(${WASTE_TYPES.length}, 1fr)`;
+            row.innerHTML = `
+                <div class="hm-form-cell hm-form-rowlabel">
+                    <span style="font-size: 1.1rem; margin-right: 0.6rem;">${sector.icon}</span>
+                    <span>${sector.label}</span>
+                </div>`;
+
+            for (const wt of WASTE_TYPES) {
+                const cell = document.createElement('div');
+                cell.className = 'hm-form-cell';
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.min  = '0';
+                input.step = '0.1';
+                input.placeholder = '0';
+                input.className = 'hm-input';
+                input.id  = `hm_${sector.key}_${wt.key}`;
+                input.name = `${sector.key}__${wt.key}`;
+
+                // Pre-fill if data exists
+                const existing = _currentData?.[sector.key]?.[wt.key];
+                if (typeof existing === 'number') input.value = existing;
+
+                // Live update on Enter or blur
+                input.addEventListener('change', collectAndUpdate);
+
+                cell.appendChild(input);
+                row.appendChild(cell);
+            }
+            form.appendChild(row);
+        }
+
+        fc.appendChild(form);
+    }
+
+    function collectAndUpdate() {
+        const data = collectFormData();
+        if (hasAnyData(data)) render(data);
+    }
+
+    function _applyForm() {
+        const data = collectFormData();
+        render(data);
+    }
+
+    function _clearForm() {
+        document.querySelectorAll('.hm-input').forEach(el => { el.value = ''; });
+        _currentData = null;
+
+        const root = document.getElementById(_containerId);
+        if (root) root.innerHTML = `
+            <div class="hm-empty">
+                <i class="fas fa-inbox"></i>
+                <p>No waste data available. Enter values in the form above and click <strong>Apply</strong>.</p>
+            </div>`;
+    }
+
+    function collectFormData() {
+        const data = {};
+        for (const s of SECTORS) {
+            data[s.key] = {};
+            for (const w of WASTE_TYPES) {
+                const el = document.getElementById(`hm_${s.key}_${w.key}`);
+                data[s.key][w.key] = el ? (parseFloat(el.value) || 0) : 0;
+            }
+        }
+        return data;
+    }
+
+    // ── Load from Supabase collection records ───────────────────────
+    /**
+     * Classifies Supabase collection records into sector×type buckets
+     * using only keyword matching. Each matched record contributes
+     * ONE count to its cell — the heatmap shows frequency, not weight.
+     * No numeric values are assumed.
+     *
+     * @param {Array} records - analyticsData.collections from analytics.js
+     */
+    function loadFromCollections(records) {
+        if (!Array.isArray(records) || records.length === 0) return null;
+
+        // Initialize with zeroes — these are NOT base data, they're counters
+        const counts = {};
+        for (const s of SECTORS) {
+            counts[s.key] = {};
+            for (const w of WASTE_TYPES) counts[s.key][w.key] = 0;
+        }
+
+        for (const rec of records) {
+            const typeStr = (rec.wasteType || rec.name || rec.description || '').toLowerCase();
+            const zoneStr = (rec.area || rec.serviceArea || rec.zone || '').toLowerCase();
+
+            // Classify waste type
+            let wasteKey = 'residual'; // fallback
+            for (const [k, kws] of Object.entries(WASTE_KEYWORDS)) {
+                if (k === 'residual') continue;
+                if (kws.some(kw => typeStr.includes(kw))) { wasteKey = k; break; }
+            }
+
+            // Classify sector
+            let sectorKey = 'residential'; // fallback
+            for (const [k, kws] of Object.entries(SECTOR_KEYWORDS)) {
+                if (kws.some(kw => zoneStr.includes(kw))) { sectorKey = k; break; }
+            }
+
+            counts[sectorKey][wasteKey]++;
+        }
+
+        return counts;
+    }
+
+    // ── View Toggle ─────────────────────────────────────────────────
+    function setView(mode) {
+        _viewMode = mode === 'percentage' ? 'percentage' : 'volume';
+        if (_currentData) render(_currentData);
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────────
+    function hasAnyData(data) {
+        if (!data) return false;
+        for (const s of SECTORS)
+            for (const w of WASTE_TYPES)
+                if ((data?.[s.key]?.[w.key] || 0) > 0) return true;
+        return false;
+    }
+
+    function deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj || {}));
+    }
+
+    // ── Expose ───────────────────────────────────────────────────────
+    return {
+        render,
+        update:              (data) => render(data),
+        setView,
+        renderForm,
+        loadFromCollections,
+        _applyForm,
+        _clearForm,
+        get currentData()  { return _currentData; },
+        get SECTORS()      { return SECTORS; },
+        get WASTE_TYPES()  { return WASTE_TYPES; }
+    };
+
+})();
+
+// Make globally accessible (used by onclick attributes in HTML)
+window.WasteHeatmap = WasteHeatmap;

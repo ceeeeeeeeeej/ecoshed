@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Test Fetch</title>
+</head>
+
+<body>
+    <h2>Fetching Bins Table...</h2>
+    <pre id="output" style="font-family: monospace; background: #f4f4f4; padding: 20px; border-radius: 8px;"></pre>
+
+    <script>
+        const url = 'https://bfqktqtsjchbmopafgzf.supabase.co/rest/v1/bins?select=*';
+        const apikey = 'sb_publishable_ucEKoeLHhbxBVtzDABvVIg_eKIhIQ31';
+
+        async function run() {
+            const out = document.getElementById('output');
+            out.innerHTML += 'Sending GET request...\n\n';
+
+            try {
+                const res = await fetch(url, {
+                    headers: {
+                        'apikey': apikey,
+                        'Authorization': 'Bearer ' + apikey
+                    }
+                });
+
+                const data = await res.json();
+                out.innerHTML += 'Status: ' + res.status + '\n\n';
+                out.innerHTML += JSON.stringify(data, null, 2);
+            } catch (e) {
+                out.innerHTML += '<span style="color: red;">ERROR: ' + e + '</span>\n';
+            }
+        }
+
+        run();
+    </script>
+</body>
+
+</html>

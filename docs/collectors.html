@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Collector Management - EcoSched Admin</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/pages/collectors.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-truck"></i>
+                    Collector Management
+                </h1>
+                <p class="page-subtitle">Manage waste collection vehicles and drivers</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="openAddCollectorModal()">
+                    <i class="fas fa-plus"></i>
+                   Assign Truck Collector
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-container">
+            <div class="filters-row">
+                <div class="filter-group">
+                    <label>Search Collectors</label>
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search by name or ID..." id="collectorSearch">
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select class="filter-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="on-route">On Route</option>
+                        <option value="available">Available</option>
+                        <option value="maintenance">Maintenance</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Vehicle Type</label>
+                    <select class="filter-select" id="vehicleTypeFilter">
+                        <option value="">All Types</option>
+                        <option value="truck">Truck</option>
+                        <option value="van">Van</option>
+                        <option value="compactor">Compactor</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="btn btn-secondary" onclick="resetFilters()">
+                        <i class="fas fa-refresh"></i>
+                        Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Collectors Grid -->
+        <div id="collectorsGrid" class="collectors-grid">
+            <!-- Collectors will be loaded here. Each card will have View, Edit, and Delete actions wired from JS. -->
+        </div>
+
+        <!-- Add Collector Modal -->
+        <div id="addCollectorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Add New Collector</h3>
+                    <button class="modal-close" onclick="closeAddCollectorModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form class="modal-form" id="addCollectorForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="collectorId">Collector ID</label>
+                            <input type="text" id="collectorId" name="collectorId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="driverName">Driver Name</label>
+                            <select id="driverName" name="driverName" required>
+                                <option value="">Select Collector Account</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="vehicleType">Vehicle Type</label>
+                            <select id="vehicleType" name="vehicleType" required>
+                                <option value="">Select Type</option>
+                                <option value="truck">Truck</option>
+                                <option value="van">Van</option>
+                                <option value="compactor">Compactor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="vehicleId">Vehicle ID</label>
+                            <input type="text" id="vehicleId" name="vehicleId" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label for="licensePlate">License Plate</label>
+                        <input type="text" id="licensePlate" name="licensePlate" required>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeAddCollectorModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Collector</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- View Collector Modal -->
+        <div id="viewCollectorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Collector Details</h3>
+                    <button class="modal-close" onclick="closeViewCollectorModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-form" style="gap:1rem;">
+                    <div class="form-group">
+                        <label>Collector ID</label>
+                        <p id="viewCollectorId">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Driver Name</label>
+                        <p id="viewDriverName">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <p id="viewStatus">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle Type</label>
+                        <p id="viewVehicleType">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Vehicle ID</label>
+                        <p id="viewVehicleId">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <p id="viewPhone">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>License Plate</label>
+                        <p id="viewLicense">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Current Route</label>
+                        <p id="viewRoute">-</p>
+                    </div>
+                    <div class="form-group">
+                        <label>Progress / ETA</label>
+                        <p id="viewProgress">-</p>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-primary" onclick="closeViewCollectorModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Collector Modal -->
+        <div id="editCollectorModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Edit Collector</h3>
+                    <button class="modal-close" onclick="closeEditCollectorModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <form class="modal-form" id="editCollectorForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCollectorId">Collector ID</label>
+                            <input type="text" id="editCollectorId" name="editCollectorId" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editDriverName">Driver Name</label>
+                            <input type="text" id="editDriverName" name="editDriverName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editVehicleType">Vehicle Type</label>
+                            <select id="editVehicleType" name="editVehicleType" required>
+                                <option value="truck">Truck</option>
+                                <option value="van">Van</option>
+                                <option value="compactor">Compactor</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editVehicleId">Vehicle ID</label>
+                            <input type="text" id="editVehicleId" name="editVehicleId" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPhone">Phone Number</label>
+                        <input type="tel" id="editPhone" name="editPhone" placeholder="(555) 123-4567">
+                    </div>
+                    <div class="form-group">
+                        <label for="editLicense">License Plate</label>
+                        <input type="text" id="editLicense" name="editLicense" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editStatus">Status</label>
+                            <select id="editStatus" name="editStatus" required>
+                                <option value="active">Active</option>
+                                <option value="on-route">On Route</option>
+                                <option value="available">Available</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editRoute">Current Route</label>
+                            <input type="text" id="editRoute" name="editRoute" placeholder="e.g., Victoria Route A">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editProgress">Progress (%)</label>
+                            <input type="number" id="editProgress" name="editProgress" min="0" max="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="editEta">ETA</label>
+                            <input type="text" id="editEta" name="editEta" placeholder="45 min">
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeEditCollectorModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../js/pages/collectors.js"></script>
+</body>
+</html>
+

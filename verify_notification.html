@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Notification</title>
+</head>
+
+<body>
+    <h1>Verifying Notification...</h1>
+    <div id="logs"></div>
+    <script type="module">
+        import { dbService } from './config/supabase_config.js';
+
+        function log(msg) {
+            const div = document.createElement('div');
+            div.textContent = msg;
+            document.getElementById('logs').appendChild(div);
+            console.log(msg);
+        }
+
+        async function testNotification() {
+            try {
+                log('Fetching users...');
+                const { data: users, error } = await dbService.getUsers();
+                if (error) throw error;
+
+                if (!users || users.length === 0) {
+                    log('No users found.');
+                    return;
+                }
+
+                const targetUser = users[0];
+                log(`Found user: ${targetUser.email} (${targetUser.id}). Sending test notification...`);
+
+                const { data: notification, error: notifError } = await dbService.createNotification({
+                    userId: targetUser.id,
+                    title: 'Test Reschedule Notification',
+                    message: 'This is a test notification to verify the reschedule feature.',
+                    type: 'info',
+                    priority: 'low'
+                });
+
+                if (notifError) throw notifError;
+
+                log('✅ Notification created successfully!');
+                log(JSON.stringify(notification));
+
+            } catch (err) {
+                log('❌ Error: ' + err.message);
+                console.error(err);
+            }
+        }
+
+        testNotification();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,38 @@
+{
+  "name": "ecosched-admin-dashboard",
+  "version": "1.0.0",
+  "description": "EcoSched Admin Dashboard - Waste Management System",
+  "main": "index.html",
+  "scripts": {
+    "start": "node build.js && npm run serve",
+    "build": "node build.js",
+    "build:dev": "BUILD_CONFIG='{\"minify\":false,\"optimize\":false}' node build.js",
+    "build:prod": "BUILD_CONFIG='{\"minify\":true,\"optimize\":true}' node build.js",
+    "serve": "node -e \"const http = require('http'); const fs = require('fs'); const path = require('path'); const port = 3000; http.createServer((req, res) => { const urlPath = req.url.split('?')[0]; let filePath = './dist' + urlPath; if (urlPath === '/') filePath = './dist/index.html'; const extname = path.extname(filePath); const mimeTypes = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpg', '.gif': 'image/gif', '.svg': 'image/svg+xml', '.wav': 'audio/wav', '.mp4': 'video/mp4', '.woff': 'application/font-woff', '.ttf': 'application/font-ttf', '.eot': 'application/vnd.ms-fontobject', '.otf': 'application/font-otf', '.wasm': 'application/wasm' }; const contentType = mimeTypes[extname] || 'application/octet-stream'; fs.readFile(filePath, (error, content) => { if (error) { if(error.code == 'ENOENT') { res.writeHead(404, { 'Content-Type': 'text/html' }); res.end('404: Not Found', 'utf-8'); } else { res.writeHead(500); res.end('Error: ' + error.code); } } else { res.writeHead(200, { 'Content-Type': contentType }); res.end(content, 'utf-8'); } }); }).listen(port); console.log('Server running at http://localhost:' + port);\"",
+    "test": "echo 'No tests specified'",
+    "lint": "echo 'No linting configured'",
+    "clean": "rimraf dist",
+    "rebuild": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "waste-management",
+    "admin-dashboard",
+    "supabase",
+    "ecosched",
+    "sustainability",
+    "iot"
+  ],
+  "author": "EcoSched Team",
+  "license": "MIT",
+  "devDependencies": {
+    "rimraf": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ecosched/admin-dashboard.git"
+  },
+  "homepage": "https://ecosched-admin.web.app"
+}

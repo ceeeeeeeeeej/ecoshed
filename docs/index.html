@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSched - Community Waste Services</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://www.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com;">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/landing.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <img src="../assets/image/logo/logo1.png" alt="EcoSched Logo" class="logo-image">
+                <span class="logo-text">EcoSched</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="#home" class="nav-link active">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#location" class="nav-link">Location</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#about" class="nav-link">About</a>
+                </li>
+                <li class="nav-item">
+                    <a href="login.html" class="nav-link admin-link">Admin Dashboard</a>
+                </li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-background">
+            <div class="hero-overlay"></div>
+            <div class="floating-elements">
+                <div class="floating-leaf leaf-1"></div>
+                <div class="floating-leaf leaf-2"></div>
+                <div class="floating-leaf leaf-3"></div>
+                <div class="recycling-symbol symbol-1"></div>
+                <div class="recycling-symbol symbol-2"></div>
+            </div>
+        </div>
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title reveal">
+                    Community Waste Services
+                    <span class="highlight">for a Cleaner, Safer Barangay</span>
+                </h1>
+                <p class="hero-description reveal">
+                    EcoSched is a community-centered waste collection service for the residents of Victoria and Dayo-An,
+                    providing clear schedules, reminders, and support.
+                </p>
+                <div class="hero-image reveal">
+                    <div class="image-gallery">
+                        <img src="../assets/image/home/Screenshot 2025-10-21 173454.png" alt="EcoSched Dashboard"
+                            class="gallery-image active">
+                        <img src="../assets/image/home/Screenshot 2025-10-21 173454.png" alt="Waste Management"
+                            class="gallery-image">
+                        <img src="../assets/image/home/Screenshot 2025-10-21 173514.png" alt="System Overview"
+                            class="gallery-image">
+                    </div>
+                    <div class="image-indicators">
+                        <span class="indicator active" data-slide="0"></span>
+                        <span class="indicator" data-slide="1"></span>
+                        <span class="indicator" data-slide="2"></span>
+                    </div>
+                </div>
+            </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Community Waste Service Features</h2>
+                <p class="section-subtitle">Designed to support residents, barangay leaders, and waste collectors with
+                    clear, reliable community services.</p>
+            </div>
+            <div class="features-grid reveal">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Real-time Analytics</h3>
+                    <p>Comprehensive dashboards provide insights into waste patterns and system performance.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Mobile Access</h3>
+                    <p>Collectors can access the system from anywhere with our mobile-friendly interface.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Location Section -->
+    <section id="location" class="location">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Our Service Area</h2>
+                <p class="section-subtitle">Serving Victoria and Dayo-An barangays in Tago, Surigao del Sur with smart
+                    waste management</p>
+            </div>
+            <div class="location-content">
+                <div class="location-info reveal">
+                    <div class="location-card">
+                        <h3><i class="fas fa-map-marker-alt"></i> Tago, Surigao del Sur</h3>
+                        <p>Philippines - Serving 2 Barangays</p>
+                        <div class="location-stats">
+                            <div class="stat">
+                                <span class="stat-number">2</span>
+                                <span class="stat-label">Barangays Served</span>
+                            </div>
+
+                        </div>
+                    </div>
+                    <div class="location-features">
+                        <h4>Service Coverage</h4>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Victoria Barangay - 100% Coverage</li>
+                            <li><i class="fas fa-check"></i> Dayo-An Barangay - 100% Coverage</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="location-maps">
+                    <button class="map-slider-btn prev" aria-label="Show previous map">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="map-slider">
+                        <div class="map-slide active" data-map="victoria">
+                            <div class="map-card-header">
+                                <div>
+                                    <h4>Victoria Barangay</h4>
+                                    <p>Tago, Surigao del Sur</p>
+                                </div>
+                                <span class="map-badge">Smart Coverage</span>
+                            </div>
+                            <div class="map-frame">
+                                <iframe id="mapVictoria"
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d19763.321794787913!2d126.1958032121326!3d9.031731998218428!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x330239cfea9ea383%3A0x3240a7ae50924a9d!2sVictoria%2C%20Tago%2C%20Surigao%20del%20Sur!5e1!3m2!1sen!2sph!4v1764049305105!5m2!1sen!2sph"
+                                    width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <div class="map-fallback" style="display: none;">
+                                    <i class="fas fa-map-marker-alt map-fallback-icon"></i>
+                                    <div class="map-fallback-text">Victoria, Tago, Surigao del Sur</div>
+                                    <div class="map-fallback-subtext">
+                                        Interactive map showing our service area in Tago, Surigao del Sur.
+                                        <br><br>
+                                        <a href="https://www.google.com/maps/place/Victoria,+Tago,+Surigao+del+Sur"
+                                            target="_blank"
+                                            style="color: #2d5a27; text-decoration: none; font-weight: 600;">
+                                            View on Google Maps →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="map-slide" data-map="dayoan">
+                            <div class="map-card-header">
+                                <div>
+                                    <h4>Dayo-an Barangay</h4>
+                                    <p>Tago, Surigao del Sur</p>
+                                </div>
+                                <span class="map-badge">Smart Coverage</span>
+                            </div>
+                            <div class="map-frame">
+                                <iframe id="mapDayoan"
+                                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13573.50579619885!2d126.17362768079705!3d9.019601195578693!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33023988ea8344fb%3A0x7b45b846c5dec1e6!2sDayo-an%2C%20Tago%2C%20Surigao%20del%20Sur!5e1!3m2!1sen!2sph!4v1764049411205!5m2!1sen!2sph"
+                                    width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <div class="map-fallback" style="display: none;">
+                                    <i class="fas fa-map-marker-alt map-fallback-icon"></i>
+                                    <div class="map-fallback-text">Dayo-an, Tago, Surigao del Sur</div>
+                                    <div class="map-fallback-subtext">
+                                        Interactive map showing our service area in Tago, Surigao del Sur.
+                                        <br><br>
+                                        <a href="https://www.google.com/maps/place/Dayo-an,+Tago,+Surigao+del+Sur"
+                                            target="_blank"
+                                            style="color: #2d5a27; text-decoration: none; font-weight: 600;">
+                                            View on Google Maps →
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="map-slider-btn next" aria-label="Show next map">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about" class="about">
+        <div class="container">
+            <div class="about-content reveal">
+                <div class="about-text">
+                    <div class="section-header">
+                        <h2 class="section-title">About EcoSched</h2>
+                        <p class="section-subtitle">Serving the community through organized, reliable waste collection
+                            services.</p>
+                    </div>
+                    <div class="about-description">
+                        <p>
+                            EcoSched is a comprehensive waste management system designed specifically for
+                            Victoria, Tago, Surigao del Sur. Our platform provides
+                            user-friendly interfaces to create an efficient, sustainable waste collection system.
+                        </p>
+                        <p>
+                            We believe in creating cleaner communities through smart technology. Our system
+                            helps reduce environmental impact while improving service quality and efficiency
+                            for waste collectors.
+                        </p>
+                    </div>
+                    <div class="about-features">
+                        <div class="feature-item">
+                            <i class="fas fa-leaf"></i>
+                            <div>
+                                <h4>Environmental Impact</h4>
+                                <p>Reducing carbon footprint through efficient collection</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-users"></i>
+                            <div>
+                                <h4>Collector Focused</h4>
+                                <p>Designed around the collector workflow for maximum usability</p>
+                            </div>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-cogs"></i>
+                            <div>
+                                <h4>Scalable Technology</h4>
+                                <p>Built to grow with your community's needs and future requirements</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-stats">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-recycle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>12.5 level</h3>
+                                <p>Waste Collected Weekly</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>156</h3>
+                                <p>Active Collectors</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-route"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>89</h3>
+                                <p>Daily Routes</p>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3>94%</h3>
+                                <p>Efficiency Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <div class="cta-content reveal">
+                <h2>Be Part of a Cleaner Community</h2>
+                <p>Stay informed about waste collection schedules and community clean-up activities in your barangay.
+                </p>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content reveal">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <img src="../assets/image/logo/logo1.png" alt="EcoSched Logo" class="logo-image">
+                        <span class="logo-text">EcoSched</span>
+                    </div>
+                    <p>Smart waste management for a sustainable future in Victoria, Tago, Surigao del Sur.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Quick Links</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#location">Location</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="login.html">Admin Dashboard</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contact Info</h4>
+                    <ul>
+                        <li><i class="fas fa-map-marker-alt"></i> Victoria, Tago, Surigao del Sur</li>
+                        <li><i class="fas fa-phone"></i> +63 (XXX) XXX-XXXX</li>
+                        <li><i class="fas fa-envelope"></i> info@echosched.com</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 EcoSched. All rights reserved. | Smart Waste Management System</p>
+            </div>
+        </div>
+    </footer>
+
+
+
+    <script src="../js/landing.js"></script>
+</body>
+
+</html>
