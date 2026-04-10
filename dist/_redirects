@@ -1,0 +1,7 @@
+# Netlify Redirects for EcoSched Admin Dashboard
+
+# Serve all static HTML files directly (no SPA redirect)
+# This ensures each page loads its own assets correctly
+
+# Allow all static files to be served as-is
+/*  /:splat  200

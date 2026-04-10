@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-08T04:07:36.127Z */
+/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 /* Users Page Styles */
 
 .page-container {
@@ -593,4 +593,32 @@
     .modal-actions {
         flex-direction: column;
     }
+}
+
+/* Password Toggle Styles */
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+    display: block;
+}
+
+.password-input-wrapper input {
+    padding-right: 45px !important;
+}
+
+.password-input-wrapper .toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6b7280;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+    z-index: 5;
+}
+
+.password-input-wrapper .toggle-password:hover {
+    color: #10b981;
+    transform: translateY(-50%) scale(1.1);
 }

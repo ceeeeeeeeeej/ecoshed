@@ -4,12 +4,11 @@ console.log("%c🚀 DISK UPDATE VERIFIED: supabase_config.js loaded (SOURCE)", "
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 // Your Supabase project URL and anon key
-const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
+export const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmcWt0cXRzamNoYm1vcGFmZ3pmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAyMDgwMTIsImV4cCI6MjA4NTc4NDAxMn0.Xu7Ncwr5bWYF8x2t5h7XHw_nPrjlTSkQEdnQB4OtcNo';
 
 // Initialize Supabase client
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-export { SUPABASE_URL, SUPABASE_ANON_KEY };
 
 // Database table names
 export const TABLES = {
@@ -1632,7 +1631,6 @@ export const dbService = {
 
     // Get system statistics
     async getSystemStats() {
-        console.log('📊 getSystemStats: Initiating parallel queries...');
         try {
             // Fetch users, collectors, bins, and areas in parallel
             // Use allSettled so one failure doesn't break everything
@@ -1717,12 +1715,12 @@ export const dbService = {
 export const realtime = {
     // Subscribe to user changes
     subscribeToUsers(callback) {
+        const channelName = `users-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('users-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.USERS },
                 (payload) => {
-                    // Refetch users when changes occur
                     dbService.getUsers().then(({ data }) => {
                         if (data) callback(data);
                     });
@@ -1733,12 +1731,12 @@ export const realtime = {
 
     // Subscribe to activities
     subscribeToActivities(callback, limitCount = 10) {
+        const channelName = `activities-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('activities-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.USER_ACTIVITIES },
                 (payload) => {
-                    // Refetch activities when changes occur
                     dbService.getUserActivities(limitCount).then(({ data }) => {
                         if (data) callback(data);
                     });
@@ -1749,12 +1747,12 @@ export const realtime = {
 
     // Subscribe to system stats
     subscribeToStats(callback) {
+        const channelName = `stats-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('stats-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.USERS },
                 (payload) => {
-                    // Refetch stats when users change
                     dbService.getSystemStats().then(({ data }) => {
                         if (data) callback(data);
                     });
@@ -1765,12 +1763,12 @@ export const realtime = {
 
     // Subscribe to collectors
     subscribeToCollectors(callback) {
+        const channelName = `collectors-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('collectors-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.REGISTERED_COLLECTORS },
                 (payload) => {
-                    // Refetch collectors when changes occur
                     dbService.getCollectors().then(({ data }) => {
                         if (data) callback(data, payload);
                     });
@@ -1781,8 +1779,9 @@ export const realtime = {
 
     // Subscribe to resident feedback
     subscribeToResidentFeedback(callback) {
+        const channelName = `feedback-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('feedback-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.RESIDENT_FEEDBACK },
                 (payload) => {
@@ -1796,8 +1795,9 @@ export const realtime = {
 
     // Subscribe to community notifications (announcements)
     subscribeToCommunityNotifications(callback) {
+        const channelName = `announcements-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('announcements-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.ANNOUNCEMENTS },
                 (payload) => {
@@ -1815,8 +1815,9 @@ export const realtime = {
             ? { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS, filter: `user_id=eq.${userId}` }
             : { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS };
 
+        const channelName = `notifications-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('notifications-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 filter,
                 (payload) => {
@@ -1830,8 +1831,9 @@ export const realtime = {
 
     // Subscribe to collection schedules
     subscribeToCollectionSchedules(callback) {
+        const channelName = `schedules-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('schedules-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.COLLECTION_SCHEDULES },
                 (payload) => {
@@ -1845,8 +1847,9 @@ export const realtime = {
 
     // Subscribe to area schedules
     subscribeToAreaSchedules(callback) {
+        const channelName = `area-schedules-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('area-schedules-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.AREA_SCHEDULES || 'area_schedules' },
                 (payload) => {
@@ -1860,8 +1863,9 @@ export const realtime = {
 
     // Subscribe to bins (IoT sensors)
     subscribeToBins(callback) {
+        const channelName = `bins-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('bins-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.BINS || 'bins' },
                 (payload) => {
@@ -1875,12 +1879,12 @@ export const realtime = {
 
     // Subscribe to Special Collections
     subscribeToSpecialCollections(callback) {
+        const channelName = `special-collections-changes-${Math.random().toString(36).substring(7)}`;
         return supabase
-            .channel('special-collections-changes')
+            .channel(channelName)
             .on('postgres_changes',
                 { event: '*', schema: 'public', table: TABLES.SPECIAL_COLLECTIONS },
                 (payload) => {
-                    // Refetch when changes occur
                     dbService.getSpecialCollections().then(({ data }) => {
                         if (data) callback(data, payload);
                     });

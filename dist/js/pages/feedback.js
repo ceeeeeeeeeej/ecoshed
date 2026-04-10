@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 // Resident Feedback Page JavaScript
 import { dbService, realtime, utils } from '../../config/supabase_config.js';
 
@@ -96,9 +96,12 @@ function renderFeedbackTable() {
         row.innerHTML = `
             <td>
                 <div class="feedback-main">
-                    <div class="feedback-title">${escapeHtml(item.subject || item.title || item.category || 'Feedback')}</div>
+                    <div class="feedback-title">
+                        ${status === 'new' ? '<span class="new-dot"></span>' : ''}
+                        ${escapeHtml(item.category || 'Resident Feedback')}
+                    </div>
                     <div class="feedback-message">${escapeHtml(item.feedback_text || item.message || '')}</div>
-                    <div class="feedback-meta-line">Category: ${escapeHtml(item.category || 'General')}</div>
+                    <div class="feedback-meta-line">Source: Resident Feedback</div>
                 </div>
             </td>
             <td>
@@ -192,11 +195,11 @@ function formatTimestamp(raw) {
             return utils.formatDate(raw);
         }
         if (raw.toDate) {
-            return raw.toDate().toLocaleString();
+            return raw.toDate().toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric', year: 'numeric' });
         }
         const date = new Date(raw);
         if (!Number.isNaN(date.getTime())) {
-            return date.toLocaleString();
+            return date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, month: 'short', day: 'numeric', year: 'numeric' });
         }
         return String(raw);
     } catch (e) {

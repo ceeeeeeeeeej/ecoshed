@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "buildTime": "2026-04-08T04:09:36.438Z",
+  "buildTime": "2026-04-10T03:12:22.757Z",
   "files": {
-    "html": 11,
-    "css": 9,
-    "js": 16,
-    "assets": 4
+    "html": 16,
+    "css": 0,
+    "js": 2,
+    "assets": 1
   },
   "optimization": {
-    "minify": false,
-    "optimize": false
+    "minify": true,
+    "optimize": true
   }
 }

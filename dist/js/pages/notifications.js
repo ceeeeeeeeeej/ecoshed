@@ -1,6 +1,6 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 // Notifications page functionality
-import { dbService, realtime } from '../../config/supabase_config.js';
+import { dbService, realtime, utils } from '../../config/supabase_config.js';
 
 console.log('🔔 Notifications page loaded');
 
@@ -8,10 +8,29 @@ console.log('🔔 Notifications page loaded');
 let notifications = [];
 let filteredNotifications = [];
 let sensorSubscription = null;
+let currentAdminId = null;
+let pendingRead = new Set(); // Track IDs currently being marked as read
+
+// Get current user ID from localStorage
+function getCurrentAdminId() {
+    try {
+        const rawData = localStorage.getItem('userData');
+        if (rawData) {
+            const parsed = JSON.parse(rawData);
+            // Support multiple possible key names for maximum robustness
+            const id = parsed.uid || parsed.id || parsed.userId || null;
+            return id ? String(id).toLowerCase() : null;
+        }
+    } catch (e) {
+        console.error('Error parsing user data:', e);
+    }
+    return null;
+}
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🔔 Initializing notifications page...');
+    currentAdminId = getCurrentAdminId();
     loadNotifications();
     setupRealtimeSubscription();
 });
@@ -28,7 +47,7 @@ async function loadNotifications() {
     console.log('🔄 Loading notifications...');
 
     const [personalReq, communityReq] = await Promise.all([
-        dbService.getGenericNotifications(100),
+        dbService.getNotifications(100, currentAdminId),
         dbService.getCommunityNotifications(50)
     ]);
 
@@ -43,7 +62,8 @@ async function loadNotifications() {
         ...n,
         timestamp: n.createdAt || n.timestamp,
         priority: n.priority || 'low',
-        source: 'personal'
+        source: 'personal',
+        read: pendingRead.has(n.id) ? true : n.read
     }));
 
     // Map community notifications
@@ -52,7 +72,8 @@ async function loadNotifications() {
         timestamp: n.createdAt,
         type: 'system',
         priority: 'medium',
-        source: 'community'
+        source: 'community',
+        read: true // Community announcements are default read for admins
     }));
 
     // Sort and store
@@ -60,21 +81,21 @@ async function loadNotifications() {
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
         .slice(0, 100);
 
-    renderNotifications();
+    await renderNotifications();
 }
 
 // Setup real-time subscription
 function setupRealtimeSubscription() {
-    if (!realtime || !realtime.subscribeToGenericNotifications) {
+    if (!realtime || !realtime.subscribeToNotifications) {
         console.warn('⚠️ Realtime notification subscription not available');
         return;
     }
 
     try {
-        sensorSubscription = realtime.subscribeToGenericNotifications(async (data, payload) => {
+        sensorSubscription = realtime.subscribeToNotifications(async (data, payload) => {
             console.log('🔔 Notification change detected');
             loadNotifications(); // Simplified reload
-        });
+        }, currentAdminId);
 
         console.log('📡 Notification subscription active');
     } catch (error) {
@@ -83,8 +104,10 @@ function setupRealtimeSubscription() {
 }
 
 // Render notifications list
-function renderNotifications() {
-    updateStats();
+async function renderNotifications(skipStatUpdate = false) {
+    if (!skipStatUpdate) {
+        await updateStats();
+    }
     const container = document.getElementById('notificationsList');
 
     if (notifications.length === 0) {
@@ -98,12 +121,33 @@ function renderNotifications() {
     }
 
     container.innerHTML = notifications.map(notif => {
-        const timeStr = formatNotificationTime(notif.timestamp);
+        const timeStr = utils.getRelativeTime(notif.timestamp);
         const priorityClass = notif.priority || 'low';
         const readClass = notif.read ? 'read' : 'unread';
 
+        // Get icon and class based on type
+        let icon = '<i class="fas fa-bell"></i>';
+        let iconClass = 'system';
+        
+        if (notif.type === 'feedback') {
+            icon = '<i class="fas fa-comment-alt"></i>';
+            iconClass = 'user';
+        } else if (notif.type === 'special_collection' || notif.type === 'pickup_request') {
+            icon = '<i class="fas fa-truck-loading"></i>';
+            iconClass = 'collector';
+        } else if (notif.type === 'bin_alert' || notif.type === 'alert') {
+            icon = '<i class="fas fa-exclamation-triangle"></i>';
+            iconClass = 'iot';
+        } else if (notif.type === 'new_user') {
+            icon = '<i class="fas fa-user-plus"></i>';
+            iconClass = 'user';
+        }
+
         return `
-            <div class="notification-item ${readClass} priority-${priorityClass}" data-id="${notif.id}" onclick="handleNotificationClick(event, '${notif.id}', ${notif.read})">
+            <div class="notification-item ${readClass} priority-${priorityClass}" data-id="${notif.id}" onclick="handleNotificationClick(event, '${notif.id}', ${notif.read}, '${notif.type}')">
+                <div class="notification-icon ${iconClass}">
+                    ${icon}
+                </div>
                 <div class="notification-content">
                     <div class="notification-header">
                         <h4 class="notification-title">${notif.title}</h4>
@@ -119,43 +163,90 @@ function renderNotifications() {
 // Mark notification as read
 window.markAsRead = async function (id) {
     console.log('🔄 Marking as read:', id);
-    const { error } = await dbService.updateNotification(id, { read: true });
-
-    if (error) {
-        console.error('❌ Failed:', error);
-        return;
-    }
-
+    if (pendingRead.has(id)) return;
+    
+    // OPTIMISTIC UPDATE: Update local state immediately
     const notif = notifications.find(n => n.id === id);
-    if (notif) {
+    if (notif && !notif.read) {
+        pendingRead.add(id); // Lock this ID as read
         notif.read = true;
-        renderNotifications();
+        
+        // Update counts LOCALLY
+        const elUnread = document.getElementById('unreadCount');
+        if (elUnread) {
+            const currentCount = parseInt(elUnread.textContent) || 0;
+            elUnread.textContent = Math.max(0, currentCount - 1);
+        }
+        
+        // Re-render list
+        await renderNotifications(true); 
+        
+        // Update database
+        const { error } = await dbService.updateNotification(id, { read: true });
+        
+        // Delay clearing from pendingRead to ensure realtime events have passed
+        setTimeout(() => {
+            pendingRead.delete(id);
+        }, 3000);
+
+        if (error) {
+            console.error('❌ Failed to update DB:', error);
+            pendingRead.delete(id); // Immediate revert on error
+        }
+        
+        // Notify parent dashboard to update its badge
+        if (window.parent && typeof window.parent.updateBadge === 'function') {
+            await window.parent.updateBadge();
+        }
     }
 };
 
 // Handle clicking on the entire notification item
-window.handleNotificationClick = function (event, id, isRead) {
+window.handleNotificationClick = async function (event, id, isRead, type) {
+    console.log('👆 Notification clicked:', { id, isRead, type });
+    
     // Don't trigger if a button was clicked
     if (event.target.closest('button')) {
         return;
     }
 
     if (!isRead) {
-        markAsRead(id);
+        await markAsRead(id); 
+        // Small 100ms delay to ensure the fetch request is fully "finalized" 
+        // by the browser network stack before we destroy the iframe via navigation
+        await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Navigation logic based on type
+    if (window.parent && typeof window.parent.navigateToPage === 'function') {
+        if (type === 'special_collection') {
+            window.parent.navigateToPage('special-collections');
+        } else if (type === 'feedback') {
+            window.parent.navigateToPage('feedback');
+        } else if (type === 'new_user') {
+            window.parent.navigateToPage('users');
+        } else if (type === 'alert') {
+            window.parent.navigateToPage('dashboard');
+        }
     }
 };
 
-// Mark all as read
 window.markAllRead = async function () {
     console.log('🔄 Marking all as read...');
-    const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
+    const { data: dbNotifications } = await dbService.getNotifications(100, currentAdminId);
+    const unreadIds = (dbNotifications || []).filter(n => !n.read).map(n => n.id);
 
     for (const id of unreadIds) {
         await dbService.updateNotification(id, { read: true });
     }
 
     notifications.forEach(n => n.read = true);
-    renderNotifications();
+    await renderNotifications();
+    
+    // Notify parent dashboard to update its badge
+    if (window.parent && typeof window.parent.updateBadge === 'function') {
+        await window.parent.updateBadge();
+    }
 };
 
 // Delete notification
@@ -173,22 +264,39 @@ window.deleteNotification = async function (id) {
 };
 
 // Update statistics
-function updateStats() {
-    const total = notifications.length;
-    const unread = notifications.filter(n => !n.read).length;
-    const today = notifications.filter(n => {
-        const notifDate = new Date(n.timestamp);
-        const todayDate = new Date();
-        return notifDate.toDateString() === todayDate.toDateString();
-    }).length;
+async function updateStats() {
+    try {
+        const adminId = getCurrentAdminId();
+        if (!adminId) return; // Don't fetch if no admin context
+        
+        // Get true unread counts from DB for accurate reporting
+        const { unread: trueUnread } = await dbService.getNotificationCounts(adminId);
+        
+        const total = notifications.length; // Total loaded in list
+        const unread = trueUnread;
 
-    const elTotal = document.getElementById('totalCount');
-    const elUnread = document.getElementById('unreadCount');
-    const elToday = document.getElementById('todayCount');
-    
-    if (elTotal) elTotal.textContent = total;
-    if (elUnread) elUnread.textContent = unread;
-    if (elToday) elToday.textContent = today;
+        const now = new Date();
+        const todayStr = now.toDateString();
+        
+        const todayCount = notifications.filter(n => {
+            if (!n.timestamp) return false;
+            let ts = n.timestamp;
+            if (typeof ts === 'string' && !ts.includes('Z') && !ts.includes('+')) {
+                ts += 'Z';
+            }
+            return new Date(ts).toDateString() === todayStr;
+        }).length;
+
+        const elTotal = document.getElementById('totalCount');
+        const elUnread = document.getElementById('unreadCount');
+        const elToday = document.getElementById('todayCount');
+        
+        if (elTotal) elTotal.textContent = total;
+        if (elUnread) elUnread.textContent = unread;
+        if (elToday) elToday.textContent = todayCount;
+    } catch (error) {
+        console.error('Error updating notification stats:', error);
+    }
 }
 
 // Cleanup: remove local saving logic since we use DB now
@@ -196,21 +304,6 @@ function saveNotifications() {
     // No longer needed
 }
 
-// Helper: Format notification time (Descriptive)
-function formatNotificationTime(timestamp) {
-    if (!timestamp) return 'Unknown time';
-    const date = new Date(timestamp);
-    
-    // Format: Month DD, YYYY, HH:MM AM/PM
-    return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-    });
-}
 
 // Helper: Get priority icon
 function getPriorityIcon(priority) {

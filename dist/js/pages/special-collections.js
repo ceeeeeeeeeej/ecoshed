@@ -1,6 +1,6 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 console.log("%c🚀 DISK UPDATE VERIFIED: special-collections.js loaded", "color: white; background: purple; padding: 10px; font-size: 20px;");
-import { supabase, dbService, realtime, utils, authService } from '../../config/supabase_config.js?v=101';
+import { supabase, dbService, realtime, utils, authService } from '../../config/supabase_config.js?v=102';
 
 console.log('✨ Special Collections page loaded');
 
@@ -126,19 +126,23 @@ function createCollectionCard(collection) {
     const scheduledDate = collection.scheduledDate ? new Date(collection.scheduledDate) : null;
     const createdDate = collection.createdAt ? new Date(collection.createdAt) : new Date();
 
-    const location = collection.residentLocation || '';
+    const metadata = collection.metadata || {};
+    const street = metadata.residentStreet || '';
+    const age = metadata.residentAge || '';
+
+    const location = collection.pickupLocation || collection.residentLocation || '';
     const barangay = collection.residentBarangay || '';
-    const fullLocation = [location, barangay].filter(Boolean).join(', ');
+    const fullLocation = [location, street, barangay].filter(Boolean).join(', ');
 
     return `
         <div class="collection-card">
             <div class="collection-header">
                 <div>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <h4>${collection.residentName || 'Unknown Resident'}</h4>
+                        <h4>${collection.residentName || 'Unknown Resident'} ${age ? `<span style="font-weight:normal; font-size:0.8rem; color:#6b7280;">(${age} yrs)</span>` : ''}</h4>
                         <span class="text-muted" style="font-size:0.75rem;">• ${utils.getRelativeTime ? utils.getRelativeTime(createdDate) : formatDate(createdDate)}</span>
                     </div>
-                    <p class="text-muted"><i class="fa-solid fa-map-marker-alt"></i> ${fullLocation || 'N/A'}</p>
+                    <p class="text-muted"><i class="fa-solid fa-map-marker-alt"></i> ${fullLocation || 'No location specified'}</p>
                 </div>
                 <span class="status-badge ${statusClass}">${statusText}</span>
             </div>
@@ -147,14 +151,14 @@ function createCollectionCard(collection) {
                     <i class="fa-solid fa-trash-can"></i>
                     <div>
                         <span class="detail-label">Waste Type</span>
-                        <span class="detail-value">${collection.wasteType || 'N/A'}</span>
+                        <span class="detail-value">${collection.wasteType || '-'}</span>
                     </div>
                 </div>
                 <div class="detail-item">
                     <i class="fa-solid fa-box"></i>
                     <div>
                         <span class="detail-label">Quantity</span>
-                        <span class="detail-value">${collection.estimatedQuantity || 'N/A'}</span>
+                        <span class="detail-value">${collection.estimatedQuantity || '-'}</span>
                     </div>
                 </div>
                 
@@ -173,7 +177,7 @@ function createCollectionCard(collection) {
                     <i class="fa-solid fa-truck-pickup" style="color: #16a34a;"></i>
                     <div>
                         <span class="detail-label" style="color: #166534;">Scheduled Pickup</span>
-                        <span class="detail-value" style="color: #15803d; font-weight:600;">${formatDate(scheduledDate)} @ ${collection.scheduledTime || 'TBD'}</span>
+                        <span class="detail-value" style="color: #15803d; font-weight:600;">${formatDate(scheduledDate)} @ ${formatTimeLabel(collection.scheduledTime)}</span>
                     </div>
                 </div>
                 ` : ''}
@@ -363,27 +367,32 @@ function openDetailsModal(collection) {
     const modal = document.getElementById('detailsModal');
     const content = document.getElementById('detailsContent');
 
-    content.innerHTML = `
+        const metadata = collection.metadata || {};
+        const street = metadata.residentStreet || '';
+        const age = metadata.residentAge || '';
+
+        content.innerHTML = `
         <div class="details-grid">
             <div class="detail-group">
                 <h4>Resident Information</h4>
-                <p><strong>Name:</strong> ${collection.residentName || 'N/A'}</p>
-                <p><strong>Location:</strong> ${collection.residentLocation || 'N/A'}</p>
-                <p><strong>Barangay:</strong> ${collection.residentBarangay || 'N/A'}</p>
-                <p><strong>Purok:</strong> ${collection.residentPurok || 'N/A'}</p>
+                <p><strong>Name:</strong> ${collection.residentName || '-'}</p>
+                <p><strong>Barangay:</strong> ${collection.residentBarangay || '-'}</p>
+                <p><strong>Purok:</strong> ${collection.residentPurok || '-'}</p>
+                ${street ? `<p><strong>Street:</strong> ${street}</p>` : ''}
+                ${age ? `<p><strong>Age:</strong> ${age}</p>` : ''}
             </div>
             <div class="detail-group">
                 <h4>Collection Details</h4>
-                <p><strong>Waste Type:</strong> ${collection.wasteType || 'N/A'}</p>
-                <p><strong>Quantity:</strong> ${collection.estimatedQuantity || 'N/A'}</p>
-                <p><strong>Pickup Location:</strong> ${collection.pickupLocation || 'N/A'}</p>
+                <p><strong>Waste Type:</strong> ${collection.wasteType || '-'}</p>
+                <p><strong>Quantity:</strong> ${collection.estimatedQuantity || '-'}</p>
+                <p><strong>Pickup Location:</strong> ${collection.pickupLocation || '-'}</p>
                 ${collection.message ? `<p><strong>Message:</strong> ${collection.message}</p>` : ''}
             </div>
             ${collection.scheduledDate ? `
             <div class="detail-group">
                 <h4>Schedule Information</h4>
                 <p><strong>Date:</strong> ${formatDate(new Date(collection.scheduledDate))}</p>
-                <p><strong>Time:</strong> ${collection.scheduledTime || 'N/A'}</p>
+                <p><strong>Time:</strong> ${formatTimeLabel(collection.scheduledTime)}</p>
             </div>
             ` : ''}
         </div>
@@ -417,6 +426,12 @@ async function confirmScheduleCollection() {
         showNotification('Please fill in all required fields', 'error');
         return;
     }
+
+    console.log('%c📅 SCHEDULING SPECIAL COLLECTION:', 'color: white; background: #059669; padding: 5px; font-weight: bold;');
+    console.log('   - Collection ID:', currentCollectionId);
+    console.log('   - Scheduled Date:', date);
+    console.log('   - Scheduled Time:', time);
+    console.log('   - Resident:', document.getElementById('schedule-residentName').value);
 
     const btn = document.querySelector('#scheduleCollectionModal .btn-primary');
     const originalText = btn.innerHTML;
@@ -516,6 +531,22 @@ function formatDate(date) {
         day: 'numeric',
         year: 'numeric'
     }).format(date);
+}
+
+function formatTimeLabel(timeStr) {
+    if (!timeStr) return 'TBD';
+    if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+    
+    try {
+        const [hour, minute] = timeStr.split(':').map(Number);
+        if (isNaN(hour) || isNaN(minute)) return timeStr;
+        
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const h12 = hour % 12 || 12;
+        return `${h12.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${ampm}`;
+    } catch (e) {
+        return timeStr;
+    }
 }
 
 function showNotification(message, type = 'info') {

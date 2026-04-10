@@ -1,21 +1,28 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
-// Users Page JavaScript
+/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 import { authService, dbService, realtime, utils } from '../../config/supabase_config.js';
 import { logActivity } from '../utils/activity_logger.js';
 
+console.log('--- USERS.JS SCRIPT LOADED ---');
+
 // Global variables
 let currentPage = 1;
-let itemsPerPage = 10;
+let itemsPerPage = 8;
 let totalUsers = 0;
 let allUsers = [];
 let filteredUsers = [];
 let currentEditUserId = null;
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('Users page loaded');
+function startInitialization() {
+    console.log('--- USERS.JS INITIALIZING ---');
     initializeUsersPage();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startInitialization);
+} else {
+    startInitialization();
+}
 
 // Initialize users page
 function initializeUsersPage() {
@@ -161,6 +168,24 @@ function setupEventListeners() {
     const editUserForm = document.getElementById('editUserForm');
     if (editUserForm) {
         editUserForm.addEventListener('submit', handleEditUser);
+    }
+
+    // Role-based field toggling
+    const roleSelect = document.getElementById('role');
+    if (roleSelect) {
+        roleSelect.addEventListener('change', (e) => {
+            const barangayGroup = document.getElementById('barangayGroup');
+            const purokGroup = document.getElementById('purokGroup');
+            if (e.target.value === 'collector') {
+                barangayGroup.style.display = 'none';
+                purokGroup.style.display = 'none';
+            } else {
+                barangayGroup.style.display = 'block';
+                purokGroup.style.display = 'block';
+            }
+        });
+        // Trigger initial state
+        roleSelect.dispatchEvent(new Event('change'));
     }
 
     // Phone formatting
@@ -377,14 +402,6 @@ function renderUsersTable() {
 
 // Create user row
 function createUserRow(user) {
-    const normalizedStatus = (user.status || 'active').toLowerCase();
-    const statusActionButton = normalizedStatus === 'active'
-        ? `<button class="action-icon action-deactivate" onclick="updateUserStatus('${user.id}', 'inactive')" title="Deactivate">
-                <i class="fas fa-user-slash"></i>
-           </button>`
-        : `<button class="action-icon action-activate" onclick="updateUserStatus('${user.id}', 'active')" title="Activate">
-                <i class="fas fa-user-check"></i>
-           </button>`;
 
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -405,18 +422,12 @@ function createUserRow(user) {
         <td>
             <span class="role-badge ${user.role}">${user.role}</span>
         </td>
-        <td>
-            <span class="status-badge status-${(user.status || 'active').toLowerCase()}">${formatStatus(user.status)}</span>
-        </td>
-        <td>${formatRelativeTime(user.lastActive)}</td>
-        <td>${user.phone || 'N/A'}</td>
+        <td>${user.purok || '—'}</td>
+        <td>${user.phone || '—'}</td>
         <td>
             <div class="action-buttons">
                 <button class="action-icon action-view" onclick="viewUser('${user.id}')" title="View">
                     <i class="fas fa-eye"></i>
-                </button>
-                <button class="action-icon action-edit" onclick="editUser('${user.id}')" title="Edit">
-                    <i class="fas fa-edit"></i>
                 </button>
                 ${['pending_approval', 'pending_verification'].includes((user.status || '').toLowerCase()) ? `
                 <button class="action-icon action-approve" onclick="approveUser('${user.id}')" title="Approve Account">
@@ -425,7 +436,6 @@ function createUserRow(user) {
                 <button class="action-icon action-reject" onclick="rejectUser('${user.id}')" title="Reject Account" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
                     <i class="fas fa-times-circle"></i>
                 </button>` : ''}
-                ${statusActionButton}
                 <button class="action-icon action-delete" onclick="deleteUser('${user.id}')" title="Delete">
                     <i class="fas fa-trash"></i>
                 </button>
@@ -698,23 +708,26 @@ function closeAddUserModal() {
     }
 }
 
+
 // Handle add user form submission
 async function handleAddUser(e) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
     const role = formData.get('role');
+    const password = formData.get('password');
+    const confirmPassword = formData.get('confirmPassword');
 
     const userData = {
         firstName: formData.get('firstName'),
         lastName: formData.get('lastName'),
         email: formData.get('email'),
         phone: normalizePhilippinesPhone(formData.get('phone')),
-        role: formData.get('role'),
-        location: formData.get('location'),
-        password: formData.get('password'),
-        // SECURITY: All new accounts require approval (except superadmins)
-        status: formData.get('role') === 'superadmin' ? 'active' : 'pending_approval'
+        role: role,
+        location: role === 'collector' ? 'All' : formData.get('location'),
+        purok: role === 'collector' ? 'All' : formData.get('purok'),
+        password: password,
+        status: 'active'
     };
 
     // Validate form
@@ -723,8 +736,13 @@ async function handleAddUser(e) {
         return;
     }
 
-    if (!userData.password || userData.password.length < 6) {
+    if (!password || password.length < 6) {
         showNotification('Password must be at least 6 characters', 'error');
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match', 'error');
         return;
     }
 
@@ -773,6 +791,7 @@ async function handleAddUser(e) {
             phone: userData.phone,
             role: userData.role,
             location: userData.location,
+            purok: userData.purok,
             status: userData.status,
             lastActive: new Date().toISOString()
         };
@@ -811,9 +830,8 @@ function viewUser(userId) {
     document.getElementById('viewEmail').textContent = user.email || '—';
     document.getElementById('viewPhone').textContent = user.phone || '—';
     document.getElementById('viewRole').textContent = user.role || '—';
-    document.getElementById('viewStatus').textContent = user.status || '—';
     document.getElementById('viewLocation').textContent = user.location || '—';
-    document.getElementById('viewLastActive').textContent = user.lastActive ? formatRelativeTime(user.lastActive) : '—';
+    document.getElementById('viewPurok').textContent = user.purok || '—';
     openViewUserModal();
 }
 
@@ -826,8 +844,8 @@ function editUser(userId) {
     document.getElementById('editEmail').value = user.email || '';
     document.getElementById('editPhone').value = user.phone || '';
     document.getElementById('editRole').value = user.role || 'collector';
-    document.getElementById('editStatus').value = user.status || 'active';
     document.getElementById('editLocation').value = user.location || '';
+    document.getElementById('editPurok').value = user.purok || '';
     openEditUserModal();
 }
 
@@ -844,8 +862,8 @@ async function handleEditUser(e) {
         email: formData.get('editEmail'),
         phone: normalizePhilippinesPhone(formData.get('editPhone')),
         role: formData.get('editRole'),
-        status: formData.get('editStatus'),
-        location: formData.get('editLocation')
+        location: formData.get('editLocation'),
+        purok: formData.get('editPurok')
     };
 
     // Check for duplicate email (excluding current user)
@@ -1129,5 +1147,25 @@ window.selectAllUsers = selectAllUsers;
 window.bulkAction = bulkAction;
 window.toggleSelectAll = toggleSelectAll;
 window.changePage = changePage;
+window.goToPage = goToPage;
 window.approveUser = approveUser;
+window.rejectUser = rejectUser;
+window.updateUserStatus = updateUserStatus;
+window.handleSearch = handleSearch;
+window.handleFilter = handleFilter;
+
+// Password visibility toggle
+window.togglePasswordVisibility = function(inputId) {
+    const input = document.getElementById(inputId);
+    const icon = input.nextElementSibling;
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+};
 
