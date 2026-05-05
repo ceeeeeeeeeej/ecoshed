@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 import { supabase, dbService, realtime, utils, authService } from '../../config/supabase_config.js';
 
 // Schedules page functionality
@@ -20,10 +20,10 @@ let unsubscribeFixedSchedules = null;
 let unsubscribeSpecials = null;
 let editingScheduleId = null;
 
-window.setCollectionFilter = function(filter) {
+window.setCollectionFilter = function (filter) {
     console.log(' Setting collection filter:', filter);
     currentCollectionFilter = filter;
-    
+
     // Update button states
     document.querySelectorAll('.btn-filter').forEach(btn => {
         if (btn.getAttribute('data-filter') === filter) {
@@ -32,16 +32,16 @@ window.setCollectionFilter = function(filter) {
             btn.classList.remove('active');
         }
     });
-    
+
     // Re-render views
     renderScheduleList();
     renderCalendar();
 };
 
-window.toggleCalendarVisibility = function() {
+window.toggleCalendarVisibility = function () {
     const calendarSection = document.getElementById('calendarSection');
     const toggleBtn = document.getElementById('toggleCalendarBtn');
-    
+
     if (calendarSection.style.display === 'none') {
         calendarSection.style.display = 'block';
         toggleBtn.classList.add('active');
@@ -53,7 +53,7 @@ window.toggleCalendarVisibility = function() {
     }
 };
 
-window.dumpSchedulesState = function() {
+window.dumpSchedulesState = function () {
     console.log('--- SCHEDULES INTERNAL STATE ---');
     console.log('schedules:', JSON.stringify(schedules));
     console.log('fixedSchedules:', JSON.stringify(fixedSchedules));
@@ -66,8 +66,6 @@ function normalizeDateKey(date) {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 }
-
-
 
 function getDayOfWeek(dayName) {
     const days = {
@@ -87,51 +85,51 @@ function calculateNextRunDate(daysArray, timeString) {
     const now = new Date();
     let minDiff = Infinity;
     let nextDate = null;
-    
+
     const [hh, mm] = (timeString || '08:00').split(':').map(n => parseInt(n, 10));
-    
+
     daysArray.forEach(dayName => {
         const target = getDayOfWeek(dayName);
-        if(!target) return;
-        
+        if (!target) return;
+
         const currentDayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
         let daysUntil = target - currentDayOfWeek;
-        
+
         if (daysUntil === 0) {
             const tempDate = new Date(now);
-            tempDate.setHours(hh||8, mm||0, 0, 0);
+            tempDate.setHours(hh || 8, mm || 0, 0, 0);
             const nowNoTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const tempDateNoTime = new Date(tempDate.getFullYear(), tempDate.getMonth(), tempDate.getDate());
-            if (nowNoTime > tempDateNoTime) { 
+            if (nowNoTime > tempDateNoTime) {
                 daysUntil = 7;
             }
         } else if (daysUntil < 0) {
             daysUntil += 7;
         }
-        
+
         if (daysUntil < minDiff) {
             minDiff = daysUntil;
             nextDate = new Date(now);
             nextDate.setDate(now.getDate() + daysUntil);
-            nextDate.setHours(hh||8, mm||0, 0, 0);
+            nextDate.setHours(hh || 8, mm || 0, 0, 0);
         }
     });
-    
+
     return nextDate || new Date();
 }
 
 function generateSingleFixedSchedules(manualSchedules) {
     const items = [];
     const activeFixed = fixedSchedules || [];
-    
+
     activeFixed.forEach(fs => {
         const area = (fs.area || '').toLowerCase();
         const days = Array.isArray(fs.days) ? fs.days : [];
         const time = fs.time || '08:00';
         const scheduleName = fs.scheduleName || 'Eco Collection';
-        
+
         const nextDate = calculateNextRunDate(days, time);
-        
+
         items.push({
             id: fs.id, // We use the mother ID directly so delete works immediately
             originalFixedId: fs.id,
@@ -147,10 +145,10 @@ function generateSingleFixedSchedules(manualSchedules) {
             isFixedRule: true,
             days: days,
             fixedTime: time,
-            ruleDescription: `Every ${days.map(d=>capitalize(d.slice(0,3))).join(' & ')}`
+            ruleDescription: `Every ${days.map(d => capitalize(d.slice(0, 3))).join(' & ')}`
         });
     });
-    
+
     return items;
 }
 
@@ -262,11 +260,11 @@ function startReminderDaemon() {
     console.log(' Reminder daemon disabled (using server-side cron).');
 }
 
-window.triggerTestReminder = function() {
+window.triggerTestReminder = function () {
     console.log(' Browser-based reminders disabled.');
 };
 
-window.triggerTestCollectionStart = function() {
+window.triggerTestCollectionStart = function () {
     console.log(' Browser-based alerts disabled.');
 };
 
@@ -275,17 +273,12 @@ if (window.parent && window.parent !== window) {
     window.parent.triggerTestCollectionStart = window.triggerTestCollectionStart;
 }
 
-async function checkAndNotifyCollectionStart() {
-    console.log(' Using server-side alerts (pg_cron).');
-    return;
-}
-
 function initializeSchedulesPage() {
     console.log(' EcoSched Clean Version v1.2');
-    
+
     // Start Automatic Push Notification Reminder Daemon
     startReminderDaemon();
-    
+
     // One-time cache purge for v1.2
     const currentVersion = '1.2';
     const lastVersion = localStorage.getItem('ecosched_version');
@@ -296,7 +289,7 @@ function initializeSchedulesPage() {
         localStorage.removeItem('cached_fixed_schedules');
         localStorage.removeItem('schedules_persistence_v1');
         // If we want a full clean:
-        // localStorage.clear(); 
+        // localStorage.clear();
         localStorage.setItem('ecosched_version', currentVersion);
     }
 
@@ -319,7 +312,7 @@ async function handleUpdateSchedule(event) {
     const description = formData.get('description')?.trim() || '';
     const residentName = formData.get('residentName')?.trim() || '';
     const pickupLocation = formData.get('pickupLocation')?.trim() || '';
-    
+
     // Check if we are updating a FIXED schedule or a MANUAL one
     const isFixedUpdate = (frequency === 'weekly');
 
@@ -328,7 +321,7 @@ async function handleUpdateSchedule(event) {
         return;
     }
 
-    // User is already authenticated in dashboard 
+    // User is already authenticated in dashboard
     const { data: { user } } = await supabase.auth.getUser();
 
     try {
@@ -353,7 +346,7 @@ async function handleUpdateSchedule(event) {
 
             showNotification('Master schedule updated successfully!', 'success');
             loadFixedSchedules(); // Refresh fixed schedules list
-            
+
             //  Notify residents of the updated master schedule
             notifyUsersOfScheduleAction(areaPayload, 'fixed');
 
@@ -379,9 +372,22 @@ async function handleUpdateSchedule(event) {
                 updatedBy: user?.id || 'unknown'
             };
 
-            console.log(' Updating manual schedule:', editingScheduleId, updates);
-            const { error } = await dbService.updateCollectionSchedule(editingScheduleId, updates);
-            if (error) throw error;
+            // Detect if this is a RESCHEDULE (date/time change) vs a general update
+            const oldSchedule = schedules.find(s => s.id === editingScheduleId);
+            const isReschedule = oldSchedule &&
+                (new Date(oldSchedule.scheduledDate).getTime() !== scheduledDate.getTime());
+
+            if (oldSchedule?.isRescheduled) {
+                updates.isRescheduled = true;
+                updates.originalDate = oldSchedule.originalDate || null;
+                updates.rescheduledReason = description || oldSchedule.rescheduledReason || '';
+                updates.frequency = 'one-time';
+            }
+
+            if (dbService && dbService.updateCollectionSchedule) {
+                const { error } = await dbService.updateCollectionSchedule(editingScheduleId, updates);
+                if (error) throw error;
+            }
 
             const index = schedules.findIndex(s => s.id === editingScheduleId);
             if (index !== -1) {
@@ -389,9 +395,12 @@ async function handleUpdateSchedule(event) {
             }
 
             showNotification('Schedule updated successfully!', 'success');
-            
-            // Notify residents
-            notifyUsersOfScheduleAction({ id: editingScheduleId, ...updates }, 'creation');
+
+            // Notify residents and collectors
+            notifyUsersOfScheduleAction(
+                { id: editingScheduleId, ...updates },
+                isReschedule ? 'reschedule' : 'creation'
+            );
         }
 
         renderScheduleList();
@@ -651,7 +660,7 @@ function renderScheduleList() {
     if (!scheduleListElement) return;
 
     let displaySchedules = getListSchedules();
-    
+
     // Apply collection filter
     if (currentCollectionFilter === 'regular') {
         displaySchedules = displaySchedules.filter(s => !s.name.includes('Special Collection:'));
@@ -678,14 +687,14 @@ function renderScheduleList() {
     // Add Summary Header
     const activeRecurringCount = (fixedSchedules || []).length;
     let summaryHtml = '';
-    
+
     if (activeRecurringCount > 0 && currentCollectionFilter !== 'special') {
         const nextRuns = fixedSchedules.map(fs => calculateNextRunDate(fs.days, fs.time));
         const earliestNextRun = nextRuns.length > 0 ? new Date(Math.min(...nextRuns)) : new Date();
         const formattedNextRun = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(earliestNextRun);
-        
+
         let avgFrequency = 1;
-        if(fixedSchedules.length > 0) {
+        if (fixedSchedules.length > 0) {
             const totalDays = fixedSchedules.reduce((acc, curr) => acc + (curr.days ? curr.days.length : 0), 0);
             avgFrequency = Math.round(totalDays / fixedSchedules.length);
         }
@@ -693,16 +702,25 @@ function renderScheduleList() {
         summaryHtml = `
             <div class="summary-header">
                 <div class="summary-stat">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <i class="fas fa-calendar-check" style="color: #10b981;"></i>
+                        <span class="stat-label">Active Schedules</span>
+                    </div>
                     <span class="stat-value">${activeRecurringCount}</span>
-                    <span class="stat-label">Active Schedule${activeRecurringCount !== 1 ? 's' : ''}</span>
                 </div>
                 <div class="summary-stat">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <i class="fas fa-repeat" style="color: #3b82f6;"></i>
+                        <span class="stat-label">Runs Per Week (Avg)</span>
+                    </div>
                     <span class="stat-value">${avgFrequency}</span>
-                    <span class="stat-label">Runs per week (avg)</span>
                 </div>
                 <div class="summary-stat">
-                    <span class="stat-value">${formattedNextRun}</span>
-                    <span class="stat-label">Next run</span>
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                        <i class="fas fa-clock" style="color: #f59e0b;"></i>
+                        <span class="stat-label">Next Collection Run</span>
+                    </div>
+                    <span class="stat-value" style="font-size: 1.25rem;">${formattedNextRun}</span>
                 </div>
             </div>
         `;
@@ -712,12 +730,12 @@ function renderScheduleList() {
 
     if (todaySchedules.length > 0) {
         html += `
-            <div class="section-header" style="width: 100%; margin: 20px 0 10px 0; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
-                <h3 style="color: #ef4444; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-exclamation-circle"></i> Today's Schedule
+            <div class="section-header">
+                <h3 style="color: #ef4444; display: flex; align-items: center; gap: 8px; margin: 0; padding-bottom: 12px; border-bottom: 1px solid rgba(239, 68, 68, 0.1);">
+                    <i class="fas fa-exclamation-circle"></i> Today's Collections
                 </h3>
             </div>
-            <div class="schedule-grid ${currentView === 'grid' ? 'grid-view' : ''}" style="margin-bottom: 30px;">
+            <div class="schedule-grid ${currentView === 'grid' ? 'grid-view' : ''}" style="margin-bottom: 2rem;">
                 ${todaySchedules.map(createScheduleCard).join('')}
             </div>
         `;
@@ -725,9 +743,9 @@ function renderScheduleList() {
 
     if (upcomingSchedules.length > 0) {
         html += `
-            <div class="section-header" style="width: 100%; margin: 20px 0 10px 0; padding-bottom: 10px; border-bottom: 1px solid #e5e7eb;">
-                <h3 style="color: #374151; display: flex; align-items: center; gap: 8px;">
-                    <i class="fas fa-calendar-alt"></i> Upcoming Schedules
+            <div class="section-header">
+                <h3 style="color: #374151; display: flex; align-items: center; gap: 8px; margin: 0; padding-bottom: 12px; border-bottom: 1px solid rgba(0,0,0,0.05);">
+                    <i class="fas fa-calendar-alt"></i> Upcoming Collections
                 </h3>
             </div>
             <div class="schedule-grid ${currentView === 'grid' ? 'grid-view' : ''}">
@@ -738,7 +756,7 @@ function renderScheduleList() {
         // If there are today schedules but no upcoming, we don't need to say "No upcoming"
     } else {
         // Fallback if somehow filtered out everything (e.g. only past)
-        html += `<p>No upcoming schedules found.</p>`;
+        html += `<div class="empty-state"><p>No upcoming schedules found.</p></div>`;
     }
 
     scheduleListElement.innerHTML = html;
@@ -757,7 +775,7 @@ function updateBulkDeleteUI() {
     const checkboxes = document.querySelectorAll('.schedule-checkbox:checked');
     const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
     const selectedCountSpan = document.getElementById('selectedCount');
-    
+
     if (bulkDeleteBtn && selectedCountSpan) {
         selectedCountSpan.textContent = checkboxes.length;
         if (checkboxes.length > 0) {
@@ -786,7 +804,7 @@ async function bulkDeleteSchedules() {
         const id = cb.getAttribute('data-id');
         const isFixed = cb.getAttribute('data-isfixed') === 'true';
         const originalFixedId = cb.getAttribute('data-originalfixedid');
-        
+
         if (isFixed && originalFixedId) {
             fixedIdsToDelete.add(originalFixedId);
         } else if (!isFixed && id) {
@@ -831,22 +849,16 @@ async function bulkDeleteSchedules() {
         }
     }
 
-    // Notify users about deletions (optional: one notification per area affected)
-    const affectedAreas = [...new Set(Array.from(checkboxes).map(cb => cb.getAttribute('data-area')))];
-    affectedAreas.forEach(area => {
-        if (area) notifyUsersOfScheduleAction({ area }, 'deletion-bulk');
-    });
-
     if (deletedCount > 0) {
         showNotification(`Successfully deleted ${deletedCount} schedule(s).`, 'success');
-        
+
         // Update UI immediately using local filtered arrays
         renderScheduleList();
         renderCalendar();
         updateBulkDeleteUI();
-        
+
         // Refresh fixed schedules from DB in background to ensure sync
-        await loadFixedSchedules(); 
+        await loadFixedSchedules();
         renderScheduleList();
         renderCalendar();
     } else {
@@ -886,7 +898,7 @@ function attachScheduleEventListeners(container) {
     checkboxes.forEach(cb => {
         cb.addEventListener('change', () => {
             updateBulkDeleteUI();
-            
+
             // Check if all are selected to update the "Select All" checkbox state
             const allCheckboxes = container.querySelectorAll('.schedule-checkbox');
             const checkedCheckboxes = container.querySelectorAll('.schedule-checkbox:checked');
@@ -903,23 +915,24 @@ function createScheduleCard(schedule) {
     const isFixed = schedule.isFixed === true;
     const isRescheduled = schedule.isRescheduled === true;
     const isSpecial = schedule.name && schedule.name.includes('Special Collection:');
-    const status = (schedule.status || 'scheduled').replace('-', ' ');
+    let displayStatus = (schedule.status || 'scheduled').replace(/_/g, ' ').replace(/-/g, ' ');
+    if (displayStatus.toLowerCase() === 'on the way') displayStatus = 'in progress';
 
     const cardId = isFixed ? schedule.originalFixedId : schedule.id;
 
     const editBtnHTML = `
-        <button type="button" class="btn-icon edit-schedule-btn" 
-            data-id="${cardId}" 
+        <button type="button" class="btn-icon edit-schedule-btn"
+            data-id="${cardId}"
             title="Edit Master Schedule">
             <i class="fas fa-edit"></i>
         </button>
     `;
 
     const rescheduleBtnHTML = isFixed ? `
-        <button type="button" class="btn-icon btn-reschedule" 
-            data-area="${schedule.area}" 
-            data-date="${formatDateInput(schedule.scheduledDate)}" 
-            data-time="${schedule.fixedTime || schedule.startTime || '08:00'}" 
+        <button type="button" class="btn-icon btn-reschedule"
+            data-area="${schedule.area}"
+            data-date="${formatDateInput(schedule.scheduledDate)}"
+            data-time="${schedule.fixedTime || schedule.startTime || '08:00'}"
             data-name="${schedule.name}"
             data-residentid="${schedule.residentId || ''}"
             title="One-time Reschedule">
@@ -928,38 +941,37 @@ function createScheduleCard(schedule) {
     ` : '';
 
     return `
-        <div class="schedule-card modern-card" data-area="${schedule.area || ''}">
+        <div class="schedule-card" data-area="${schedule.area || ''}">
             <div class="card-checkbox-area">
-                <input type="checkbox" class="schedule-checkbox" 
-                    data-id="${schedule.id}" 
-                    data-isfixed="${isFixed}" 
+                <input type="checkbox" class="schedule-checkbox"
+                    data-id="${schedule.id}"
+                    data-isfixed="${isFixed}"
                     data-originalfixedid="${schedule.originalFixedId || ''}"
                     data-area="${schedule.area || ''}"
                     title="Select schedule">
             </div>
-            
+
             <div class="card-content">
                 <div class="card-header-main">
                     <h4 class="card-title">
-                        ${(isSpecial && schedule.residentName) 
-                            ? `Special Collection: ${schedule.residentName}${schedule.wasteType ? ` (${schedule.wasteType})` : ''}`
-                            : (schedule.name || 'Eco Collection')}
+                        ${(isSpecial && schedule.residentName)
+            ? `Special Collection: ${schedule.residentName}${schedule.wasteType ? ` (${schedule.wasteType})` : ''}`
+            : (schedule.name || 'Eco Collection')}
                     </h4>
                     <div class="card-badges">
-                        <span class="badge badge-${statusClass}">${status.toUpperCase()}</span>
+                        <span class="badge badge-${statusClass.toLowerCase()}">${displayStatus.toUpperCase()}</span>
                     </div>
                 </div>
-                
+
                 <div class="card-location">
                     <i class="fas fa-map-marker-alt"></i> ${capitalize(schedule.area)}
                 </div>
-                
+
                 <div class="card-tags">
                     ${isFixed ? '<span class="tag tag-recurring"><i class="fas fa-redo-alt"></i> Recurring</span>' : ''}
-                    ${isFixed ? '<span class="tag tag-weekly">Weekly</span>' : ''}
-                    ${isSpecial ? '<span class="tag tag-special">Special Collection</span>' : ''}
+                    ${isSpecial ? '<span class="tag tag-special"><i class="fas fa-star"></i> Special</span>' : ''}
                 </div>
-                
+
                 <div class="card-details-grid">
                     <div class="detail-box">
                         <i class="far fa-calendar"></i>
@@ -988,7 +1000,7 @@ function createScheduleCard(schedule) {
                     <div class="detail-box">
                         <i class="fas fa-map-marker-alt"></i>
                         <div class="detail-text">
-                            <span class="detail-label">Pickup Location</span>
+                            <span class="detail-label">Pickup</span>
                             <span class="detail-value">${schedule.pickupLocation}</span>
                         </div>
                     </div>
@@ -1003,14 +1015,14 @@ function createScheduleCard(schedule) {
                     </div>
                     ` : ''}
                 </div>
-                
+
                 ${schedule.description || schedule.rescheduledReason ? `
                     <div class="card-notes">
                         <p>${schedule.description || schedule.rescheduledReason}</p>
                     </div>
                 ` : ''}
             </div>
-            
+
             <div class="card-actions">
                 ${editBtnHTML}
                 ${rescheduleBtnHTML}
@@ -1025,7 +1037,7 @@ function renderCalendar() {
     if (!calendarGrid || !currentMonthLabel) return;
 
     let displaySchedules = getDisplaySchedules();
-    
+
     // Apply collection filter
     if (currentCollectionFilter === 'regular') {
         displaySchedules = displaySchedules.filter(s => !s.name.includes('Special Collection:'));
@@ -1126,7 +1138,7 @@ async function handleAddSchedule(event) {
 
             showNotification('Fixed area schedule created successfully!', 'success');
             loadFixedSchedules(); // Refresh fixed schedules
-            
+
             //  [NOTIFICATION] Alert residents that a new fixed weekly schedule was created
             notifyUsersOfScheduleAction(areaPayload, 'fixed');
 
@@ -1153,13 +1165,6 @@ async function handleAddSchedule(event) {
     const isReschedule = (formData.get('isReschedule') || 'false') === 'true';
     const originalDateValue = formData.get('originalDate')?.toString().trim() || '';
     const originalTimeValue = formData.get('originalTime')?.toString().trim() || '';
-
-    /*
-    if (!isReschedule && frequency === 'one-time') {
-        showNotification('Manual one-time schedules are disabled. Please use the reschedule button on a fixed schedule.', 'error');
-        return;
-    }
-    */
 
     const schedulePayload = {
         name: scheduleName,
@@ -1233,7 +1238,7 @@ async function handleAddSchedule(event) {
             // Pass the residentId from the form to ensured targeted notification
             const residentIdFromForm = formData.get('residentId');
             if (residentIdFromForm) persistedSchedule.residentId = residentIdFromForm;
-            
+
             notifyUsersOfScheduleAction(persistedSchedule, 'reschedule');
         } else {
             // Also notify for regular one-time schedules
@@ -1270,11 +1275,10 @@ function openRescheduleModal({ area, date, time, name, residentId }) {
     form.frequency.value = 'one-time';
     form.startDate.value = date;
     form.startTime.value = (time || '08:00').toString().slice(0, 5);
-    
-    // Clear old resident info if not provided
-    if (form.residentName) form.residentName.value = residentName || '';
+
+    if (form.residentName) form.residentName.value = name || '';
     if (form.pickupLocation) form.pickupLocation.value = ''; // Location usually changes or is specific
-    
+
     toggleFrequencyUI();
 }
 
@@ -1358,9 +1362,9 @@ function toggleFrequencyUI() {
 
 function openEditScheduleModal(scheduleId) {
     // Search both one-time and fixed schedules
-    const schedule = schedules.find(s => s.id === scheduleId) || 
-                   fixedSchedules.find(s => s.id === scheduleId);
-                   
+    const schedule = schedules.find(s => s.id === scheduleId) ||
+        fixedSchedules.find(s => s.id === scheduleId);
+
     const modal = document.getElementById('addScheduleModal');
     if (!schedule || !modal) return;
 
@@ -1371,11 +1375,11 @@ function openEditScheduleModal(scheduleId) {
     if (!form) return;
 
     form.area.value = schedule.area || schedule.serviceArea || '';
-    
+
     // Normalize frequency
     const freq = schedule.frequency || (schedule.days ? 'weekly' : 'one-time');
     form.frequency.value = freq;
-    
+
     // Populate start date/time
     form.startDate.value = schedule.startDate || (schedule.scheduledDate ? formatDateInput(schedule.scheduledDate) : '');
     form.startTime.value = schedule.startTime || (schedule.scheduledDate ? formatTimeInput(schedule.scheduledDate) : '');
@@ -1390,15 +1394,15 @@ function openEditScheduleModal(scheduleId) {
     if (form.isReschedule) {
         form.isReschedule.value = schedule.isRescheduled ? 'true' : 'false';
     }
-    
+
     const resolveOriginalDate = (s) => {
         if (s.originalDate instanceof Date) return s.originalDate;
         if (typeof s.originalDate === 'string') return new Date(s.originalDate);
         return null;
     };
-    
+
     const origDate = resolveOriginalDate(schedule);
-    
+
     if (form.originalDate) {
         form.originalDate.value = origDate ? formatDateInput(origDate) : '';
     }
@@ -1417,7 +1421,6 @@ function openEditScheduleModal(scheduleId) {
     if (submitButton) submitButton.textContent = 'Save Changes';
 }
 
-
 async function confirmDeleteSchedule(event) {
     const btn = event.currentTarget;
     const scheduleId = btn.getAttribute('data-id');
@@ -1425,7 +1428,7 @@ async function confirmDeleteSchedule(event) {
     const originalFixedId = btn.getAttribute('data-originalfixedid');
 
     const schedule = schedules.find(s => s.id === scheduleId) || (isFixed ? { area: btn.closest('.schedule-card')?.getAttribute('data-area') } : null);
-    
+
     let deleteMsg = `Are you sure you want to delete this schedule?`;
     if (isFixed) {
         deleteMsg = `WARNING: You are about to delete the ENTIRE weekly recurring schedule for ${capitalize(schedule?.area || 'this area')}.\n\nThis will remove all future occurrences. Proceed?`;
@@ -1454,14 +1457,14 @@ async function confirmDeleteSchedule(event) {
             if (error) throw error;
             schedules = schedules.filter(s => s.id !== scheduleId);
         }
-
-        if (schedule) notifyUsersOfScheduleAction(schedule, isFixed ? 'deletion-bulk' : 'deletion');
+        // Removed notification trigger for schedule cancellation as per user request
+        // if (schedule) notifyUsersOfScheduleAction(schedule, isFixed ? 'deletion-bulk' : 'deletion');
 
         renderScheduleList();
         renderCalendar();
 
         showNotification('Schedule deleted successfully.', 'success');
-        
+
         if (isFixed) {
             await loadFixedSchedules();
             renderScheduleList();
@@ -1492,11 +1495,10 @@ function nextMonth() {
     renderCalendar();
 }
 
-
 function getStatusClass(status) {
     const normalized = status?.toLowerCase() || '';
     if (normalized === 'completed') return 'completed';
-    if (normalized === 'in-progress' || normalized === 'active') return 'active';
+    if (normalized === 'in_progress' || normalized === 'on_the_way' || normalized === 'active') return 'active';
     return 'pending';
 }
 
@@ -1556,6 +1558,7 @@ window.nextMonth = nextMonth;
 async function notifyUsersOfScheduleAction(schedule, type) {
     // schedule object has: area, scheduledDate, name, etc.
     if (!dbService || !dbService.getUsers || !dbService.createNotification) return;
+    if (type === 'deletion' || type === 'deletion-bulk') return;
 
     try {
         console.log(` Starting notification process for ${type} action:`, schedule);
@@ -1566,19 +1569,30 @@ async function notifyUsersOfScheduleAction(schedule, type) {
 
         // 2. Filter users by role (Broadband: All areas receive notification)
         const targetAreaString = (schedule.area || '').toLowerCase();
-        
+
         console.log(` Broadband broadcasting notification for Schedule in: "${targetAreaString}"`);
-        
-        const residentsToNotify = schedule.residentId 
+
+        const residentsToNotify = schedule.residentId
             ? users.filter(u => u.id === schedule.residentId)
             : users.filter(u => u.role === 'resident' && (u.location || '').toLowerCase() === targetAreaString);
-        
+
         const collectorsToNotify = users.filter(u => {
-            const isAuthorizedRole = u.role === 'admin' || u.role === 'collector' || u.role === 'driver';
-            if (!isAuthorizedRole || u.status !== 'active') return false;
-            return true; // Broadband: No location restriction
+            const role = (u.role || '').toLowerCase();
+            const status = (u.status || '').toLowerCase();
+            const isAuthorizedRole = role === 'admin' || role === 'collector' || role === 'driver';
+
+            if (!isAuthorizedRole) return false;
+
+            // Broaden status check to ensure all operational collectors get the alert
+            const isOperational = ['active', 'available', 'online', 'offline', 'scheduled'].includes(status);
+
+            // Specific check for user-requested priority areas
+            const userArea = (u.barangay || u.location || '').toLowerCase();
+            const isPriorityArea = userArea.includes('victoria') || userArea.includes('dayoan') || userArea.includes('dayaon');
+
+            return isOperational || isPriorityArea;
         });
-        
+
         const recipients = [...residentsToNotify, ...collectorsToNotify];
         console.log(` Filtered recipients: ${recipients.length} (Residents: ${residentsToNotify.length}, Collectors: ${collectorsToNotify.length})`);
         if (recipients.length > 0) {
@@ -1609,7 +1623,7 @@ async function notifyUsersOfScheduleAction(schedule, type) {
             message = `A new collection has been scheduled for ${area} on ${dateStr} at ${timeStr}. \n\n Adunay bag-ong pagkolekta sa ${area} sa ${dateStr}, ${timeStr}.`;
         } else if (type === 'fixed') {
             const daysStr = Array.isArray(schedule.days) ? schedule.days.map(d => capitalize(d.slice(0, 3))).join(', ') : 'weekly';
-            
+
             // Format time from HH:MM:SS to AM/PM
             let timeStr = 'Scheduled';
             if (schedule.time) {
@@ -1622,12 +1636,8 @@ async function notifyUsersOfScheduleAction(schedule, type) {
             const area = capitalize(schedule.area);
             title = ' New Regular Schedule | Bag-ong Eskedyul';
             message = `A new weekly collection has been set for ${area}: Every ${daysStr} at ${timeStr}. \n\n Adunay bag-ong semana nga pagkolekta sa ${area}: Matag ${daysStr}, ${timeStr}.`;
-        } else if (type === 'deletion' || type === 'deletion-bulk') {
-            const area = capitalize(schedule.area);
-            title = ' Schedule Cancelled | Gikanselar ang Eskedyul';
-            message = `The collection schedule for ${area} has been cancelled or discontinued. Please check your app for the next available schedule. \n\n Ang eskedyul sa pagkolekta sa ${area} gikanselar. Palihog tan-awa ang app para sa sunod nga eskedyul.`;
         }
-
+        // Deletion notification type removed
         if (!message) return;
 
         // 4. Send in parallel (both in-app and push)
@@ -1644,7 +1654,7 @@ async function notifyUsersOfScheduleAction(schedule, type) {
                 priority: 'high'
             });
 
-            //  The database trigger on the 'user_notifications' table will 
+            //  The database trigger on the 'user_notifications' table will
             // automatically handle the push delivery to the appropriate devices.
             return Promise.all([inAppPromise]);
         });
@@ -1656,6 +1666,3 @@ async function notifyUsersOfScheduleAction(schedule, type) {
         console.error(' Error sending schedule notifications:', err);
     }
 }
-
-
-

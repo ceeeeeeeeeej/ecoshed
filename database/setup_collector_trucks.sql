@@ -50,6 +50,18 @@ BEGIN
                 )
             );
     END IF;
+
+    -- 3c. Allow collectors to update their own status and progress
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE tablename = 'registered_collectors' AND policyname = 'Allow collectors to update own record'
+    ) THEN
+        CREATE POLICY "Allow collectors to update own record"
+            ON public.registered_collectors FOR UPDATE
+            TO authenticated
+            USING (user_id = auth.uid())
+            WITH CHECK (user_id = auth.uid());
+    END IF;
 END $$;
 
 -- 4. Create updated_at trigger

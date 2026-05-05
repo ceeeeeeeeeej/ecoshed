@@ -14,14 +14,18 @@ DECLARE
 BEGIN
     -- Extract values from user_metadata
     -- Supabase stores these in raw_user_meta_data as a JSONB object
+    -- Support both snake_case (dashboard) and camelCase (potential other sources)
     raw_role := COALESCE(new.raw_user_meta_data->>'role', 'admin');
-    raw_first_name := COALESCE(new.raw_user_meta_data->>'first_name', '');
-    raw_last_name := COALESCE(new.raw_user_meta_data->>'last_name', '');
+    raw_first_name := COALESCE(new.raw_user_meta_data->>'first_name', new.raw_user_meta_data->>'firstName', '');
+    raw_last_name := COALESCE(new.raw_user_meta_data->>'last_name', new.raw_user_meta_data->>'lastName', '');
     raw_phone := COALESCE(new.raw_user_meta_data->>'phone', '');
 
-    -- SECURITY: Set status based on role
-    -- Only superadmins are active immediately
-    IF raw_role = 'superadmin' THEN
+    -- SECURITY: Set status based on metadata or role
+    -- If status is explicitly provided in metadata, use it
+    -- Otherwise, only superadmins are active immediately
+    IF new.raw_user_meta_data->>'status' IS NOT NULL THEN
+        target_status := new.raw_user_meta_data->>'status';
+    ELSIF raw_role = 'superadmin' THEN
         target_status := 'active';
     ELSE
         target_status := 'pending_approval';

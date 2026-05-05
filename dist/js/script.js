@@ -1,4 +1,3 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
 // Admin Dashboard JavaScript
 import { authService, dbService, realtime, utils, supabase, TABLES } from '../config/supabase_config.js';
 

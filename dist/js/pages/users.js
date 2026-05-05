@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 import { authService, dbService, realtime, utils } from '../../config/supabase_config.js';
 import { logActivity } from '../utils/activity_logger.js';
 
@@ -122,7 +122,7 @@ async function rejectUser(userId) {
     const user = allUsers.find(u => u.id === userId);
     if (!user) return;
 
-    if (!confirm(`Reject and delete account for ${user.firstName} ${user.lastName}?\n\nThis action cannot be undone.`)) {
+    if (!confirm(`Reject and hide account for ${user.firstName} ${user.lastName}?\n\nThis will soft delete the account from the admin list.`)) {
         return;
     }
 
@@ -133,7 +133,7 @@ async function rejectUser(userId) {
                 console.error('Rejection error details:', error);
                 throw error;
             }
-            console.log('User account rejected and deleted:', userId);
+            console.log('User account rejected and soft deleted:', userId);
         }
 
         // Remove from local arrays
@@ -141,7 +141,7 @@ async function rejectUser(userId) {
         filteredUsers = filteredUsers.filter(u => u.id !== userId);
         totalUsers = allUsers.length;
 
-        showNotification('Account rejected and deleted successfully', 'success');
+        showNotification('Account rejected and hidden successfully', 'success');
         renderUsersTable();
         updatePagination();
         updateUserCount();
@@ -155,9 +155,13 @@ async function rejectUser(userId) {
 function setupEventListeners() {
     // Filter functionality
     const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
 
     if (roleFilter) {
         roleFilter.addEventListener('change', handleFilter);
+    }
+    if (statusFilter) {
+        statusFilter.addEventListener('change', handleFilter);
     }
 
     // Add user form
@@ -170,23 +174,7 @@ function setupEventListeners() {
         editUserForm.addEventListener('submit', handleEditUser);
     }
 
-    // Role-based field toggling
-    const roleSelect = document.getElementById('role');
-    if (roleSelect) {
-        roleSelect.addEventListener('change', (e) => {
-            const barangayGroup = document.getElementById('barangayGroup');
-            const purokGroup = document.getElementById('purokGroup');
-            if (e.target.value === 'collector') {
-                barangayGroup.style.display = 'none';
-                purokGroup.style.display = 'none';
-            } else {
-                barangayGroup.style.display = 'block';
-                purokGroup.style.display = 'block';
-            }
-        });
-        // Trigger initial state
-        roleSelect.dispatchEvent(new Event('change'));
-    }
+    // Role selection behavior removed as per request (Barangay/Purok not needed for Admin/Collector registration)
 
     // Phone formatting
     const phoneField = document.getElementById('phone');
@@ -234,12 +222,9 @@ async function loadUsersFromFirebase() {
             realtime.subscribeToUsers((users) => {
                 console.log('📡 Real-time update: received', users.length, 'users');
                 allUsers = users || [];
-                filteredUsers = [...allUsers];
-                totalUsers = allUsers.length;
-                updateUserCount();
-                renderUsersTable();
-                updatePagination();
+                handleFilter(); // Use handleFilter to maintain current filter state
             });
+
         }
 
     } catch (error) {
@@ -270,7 +255,7 @@ async function loadUsersFromFirebase() {
 // Generate mock users for demo
 function generateMockUsers() {
     const roles = ['admin', 'collector'];
-    const statuses = ['active', 'inactive', 'suspended'];
+    const statuses = ['active', 'inactive', 'pending_approval'];
     const firstNames = ['John', 'Jane', 'Mike', 'Sarah', 'David', 'Lisa', 'Chris', 'Amy', 'Tom', 'Emma'];
     const lastNames = ['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'];
 
@@ -329,13 +314,18 @@ function matchesUserSearch(user, searchTerm) {
     ].some(field => field.includes(searchTerm));
 }
 
-// Handle filter
 function handleFilter() {
-    const roleFilter = document.getElementById('roleFilter').value;
+    console.log('Filtering users...');
+    const roleFilterEl = document.getElementById('roleFilter');
+    const statusFilterEl = document.getElementById('statusFilter');
+
+    const roleVal = roleFilterEl ? roleFilterEl.value.toLowerCase() : '';
+    const statusVal = statusFilterEl ? statusFilterEl.value.toLowerCase() : '';
 
     filteredUsers = allUsers.filter(user => {
-        const roleMatch = !roleFilter || (user.role || '').toLowerCase() === roleFilter.toLowerCase();
-        return roleMatch;
+        const roleMatch = !roleVal || (user.role || '').toLowerCase() === roleVal;
+        const statusMatch = !statusVal || (user.status || '').toLowerCase() === statusVal;
+        return roleMatch && statusMatch;
     });
 
     currentPage = 1;
@@ -347,9 +337,13 @@ function handleFilter() {
 
 // Reset filters
 function resetFilters() {
-    document.getElementById('roleFilter').value = '';
+    const roleFilter = document.getElementById('roleFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    if (roleFilter) roleFilter.value = '';
+    if (statusFilter) statusFilter.value = '';
 
     filteredUsers = [...allUsers];
+
     currentPage = 1;
     totalUsers = filteredUsers.length;
     updateUserCount();
@@ -414,9 +408,10 @@ function createUserRow(user) {
                     <i class="fas fa-user"></i>
                 </div>
                 <div class="user-details">
-                    <div class="user-name">${user.firstName} ${user.lastName}</div>
+                    <div class="user-name">${user.fullName || (user.firstName ? `${user.firstName} ${user.lastName}` : 'Unknown User')}</div>
                     <div class="user-email">${user.email}</div>
                 </div>
+
             </div>
         </td>
         <td>
@@ -426,18 +421,18 @@ function createUserRow(user) {
         <td>${user.phone || '—'}</td>
         <td>
             <div class="action-buttons">
-                <button class="action-icon action-view" onclick="viewUser('${user.id}')" title="View">
+                <button class="action-icon action-view" onclick="viewUser('${user.id}')" title="View Details">
                     <i class="fas fa-eye"></i>
                 </button>
                 ${['pending_approval', 'pending_verification'].includes((user.status || '').toLowerCase()) ? `
                 <button class="action-icon action-approve" onclick="approveUser('${user.id}')" title="Approve Account">
-                    <i class="fas fa-check-circle"></i>
+                    <i class="fas fa-check"></i>
                 </button>
-                <button class="action-icon action-reject" onclick="rejectUser('${user.id}')" title="Reject Account" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
-                    <i class="fas fa-times-circle"></i>
+                <button class="action-icon action-reject" onclick="rejectUser('${user.id}')" title="Reject Account">
+                    <i class="fas fa-times"></i>
                 </button>` : ''}
-                <button class="action-icon action-delete" onclick="deleteUser('${user.id}')" title="Delete">
-                    <i class="fas fa-trash"></i>
+                <button class="action-icon action-delete" onclick="deleteUser('${user.id}')" title="Remove User">
+                    <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
         </td>
@@ -469,7 +464,7 @@ function formatRelativeTime(date) {
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
 
-    return new Date(date).toLocaleDateString();
+    return new Intl.DateTimeFormat('en-US').format(new Date(date));
 }
 
 // Update pagination info
@@ -516,23 +511,22 @@ function updatePagination() {
 }
 
 // Change page
+function goToPage(page) {
+    const totalPages = Math.ceil(totalUsers / itemsPerPage);
+
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        renderUsersTable();
+        updatePagination();
+    }
+}
+
 function changePage(direction) {
     const totalPages = Math.ceil(totalUsers / itemsPerPage);
     const newPage = currentPage + direction;
 
     if (newPage >= 1 && newPage <= totalPages) {
         currentPage = newPage;
-        renderUsersTable();
-        updatePagination();
-    }
-}
-
-// Go to specific page
-function goToPage(page) {
-    const totalPages = Math.ceil(totalUsers / itemsPerPage);
-
-    if (page >= 1 && page <= totalPages) {
-        currentPage = page;
         renderUsersTable();
         updatePagination();
     }
@@ -591,7 +585,7 @@ async function bulkAction(action) {
     const actionText = {
         'activate': 'activate',
         'deactivate': 'deactivate',
-        'delete': 'delete',
+        'delete': 'hide',
         'approve': 'approve'
     }[action];
 
@@ -660,7 +654,7 @@ async function bulkAction(action) {
             allUsers = allUsers.filter(user => !selectedUserIds.includes(user.id));
             filteredUsers = [...allUsers];
             totalUsers = allUsers.length;
-            showNotification(`${selectedUserIds.length} user(s) deleted successfully`, 'success');
+            showNotification(`${selectedUserIds.length} user(s) hidden successfully`, 'success');
         } else {
             const targetStatus = action === 'activate' ? 'active' : 'inactive';
             if (dbService && dbService.updateUser) {
@@ -708,7 +702,6 @@ function closeAddUserModal() {
     }
 }
 
-
 // Handle add user form submission
 async function handleAddUser(e) {
     e.preventDefault();
@@ -724,8 +717,8 @@ async function handleAddUser(e) {
         email: formData.get('email'),
         phone: normalizePhilippinesPhone(formData.get('phone')),
         role: role,
-        location: role === 'collector' ? 'All' : formData.get('location'),
-        purok: role === 'collector' ? 'All' : formData.get('purok'),
+        location: 'All',
+        purok: 'All',
         password: password,
         status: 'active'
     };
@@ -748,7 +741,7 @@ async function handleAddUser(e) {
 
     // Validate phone number if provided
     if (userData.phone && !validatePhoneNumber(userData.phone)) {
-        showNotification('Please enter a valid phone number (e.g., (555) 123-4567)', 'error');
+        showNotification('Please enter a valid phone number (e.g., +639XXXXXXXXX)', 'error');
         return;
     }
 
@@ -771,6 +764,9 @@ async function handleAddUser(e) {
 
         const { uid, error: authError } = await authService.createAuthUser(userData.email, userData.password, {
             role: userData.role,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            status: userData.status,
             fullName: `${userData.firstName} ${userData.lastName}`.trim()
         });
         if (authError || !uid) {
@@ -799,6 +795,32 @@ async function handleAddUser(e) {
         const { error: profileError } = await dbService.createUser(profilePayload);
         if (profileError) {
             throw profileError;
+        }
+
+        // 🚛 SYNC: If role is collector, automatically register in collectors table
+        // This allows them to log in to the mobile app immediately (Required by AuthService)
+        if (userData.role === 'collector') {
+            try {
+                console.log('Syncing collector to registered_collectors table...');
+                const collectorPayload = {
+                    userId: uid,
+                    collectorId: `COL-${Math.floor(1000 + Math.random() * 9000)}`, // Generate a random ID
+                    driverName: `${userData.firstName} ${userData.lastName}`.trim(),
+                    vehicleId: 'PENDING',
+                    vehicleType: 'truck',
+                    licensePlate: 'PENDING',
+                    phone: userData.phone || '',
+                    status: 'available'
+                };
+
+                if (dbService && dbService.createCollector) {
+                    await dbService.createCollector(collectorPayload);
+                    console.log('✅ Collector registered successfully for mobile access');
+                }
+            } catch (syncError) {
+                console.warn('Non-blocking sync error:', syncError);
+                // We keep this silent/warning as the primary user record IS created
+            }
         }
 
         // Log activity
@@ -886,6 +908,30 @@ async function handleEditUser(e) {
                 throw error;
             }
             console.log('User updated in database:', data);
+
+            // 🚛 SYNC: If role is collector, ensure they are in the registered_collectors table
+            if (updates.role === 'collector') {
+                try {
+                    console.log('Syncing updated collector to registered_collectors...');
+                    const collectorPayload = {
+                        userId: currentEditUserId,
+                        collectorId: `COL-${Math.floor(1000 + Math.random() * 9000)}`,
+                        driverName: `${updates.firstName} ${updates.lastName}`.trim(),
+                        vehicleId: 'PENDING',
+                        vehicleType: 'truck',
+                        licensePlate: 'PENDING',
+                        phone: updates.phone || '',
+                        status: 'available'
+                    };
+
+                    if (dbService && dbService.createCollector) {
+                        await dbService.createCollector(collectorPayload);
+                        console.log('✅ Collector registration synced for mobile access');
+                    }
+                } catch (syncError) {
+                    console.warn('Non-blocking sync error during edit:', syncError);
+                }
+            }
         }
         allUsers = allUsers.map(user => user.id === currentEditUserId ? { ...user, ...updates } : user);
         filteredUsers = [...allUsers];
@@ -943,7 +989,7 @@ async function deleteUser(userId) {
     const user = allUsers.find(u => u.id === userId);
     if (!user) return;
 
-    if (confirm(`Are you sure you want to delete ${user.firstName} ${user.lastName}?`)) {
+    if (confirm(`Are you sure you want to hide ${user.firstName} ${user.lastName}?\n\nThis performs a soft delete and removes the user from the admin list.`)) {
         try {
             if (dbService && dbService.deleteUser) {
                 const { error } = await dbService.deleteUser(userId);
@@ -956,7 +1002,7 @@ async function deleteUser(userId) {
             filteredUsers = [...allUsers];
             totalUsers = allUsers.length;
 
-            showNotification('User deleted successfully!', 'success');
+            showNotification('User hidden successfully!', 'success');
 
             // Refresh the table
             renderUsersTable();
@@ -965,7 +1011,7 @@ async function deleteUser(userId) {
 
         } catch (error) {
             console.error('Error deleting user:', error);
-            showNotification('Failed to delete user', 'error');
+            showNotification('Failed to hide user', 'error');
         }
     }
 }
@@ -1103,7 +1149,7 @@ notificationStyles.textContent = `
             opacity: 1;
         }
     }
-    
+
     @keyframes slideOut {
         from {
             transform: translateX(0);
@@ -1114,17 +1160,17 @@ notificationStyles.textContent = `
             opacity: 0;
         }
     }
-    
+
     .notification-content {
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    
+
     .text-center {
         text-align: center;
     }
-    
+
     .empty-state {
         padding: 2rem;
         color: #6b7280;
@@ -1155,7 +1201,7 @@ window.handleSearch = handleSearch;
 window.handleFilter = handleFilter;
 
 // Password visibility toggle
-window.togglePasswordVisibility = function(inputId) {
+window.togglePasswordVisibility = function (inputId) {
     const input = document.getElementById(inputId);
     const icon = input.nextElementSibling;
     if (input.type === 'password') {
@@ -1168,4 +1214,3 @@ window.togglePasswordVisibility = function(inputId) {
         icon.classList.add('fa-eye');
     }
 };
-

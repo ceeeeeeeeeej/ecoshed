@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Analytics & Reports - EcoSched Admin</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/pages/analytics.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -32,7 +34,7 @@
 
         <!-- Sensor Metrics -->
         <div class="metrics-grid">
-            <div class="metric-card">
+            <div class="metric-card" onclick="navigateToBinsWithFilter('all')" style="cursor: pointer;">
                 <div class="metric-icon">
                     <i class="fas fa-dumpster"></i>
                 </div>
@@ -42,7 +44,7 @@
                     <div class="metric-change" id="avgFillChange">From all sensors</div>
                 </div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" onclick="navigateToBinsWithFilter('critical')" style="cursor: pointer;">
                 <div class="metric-icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
@@ -52,7 +54,7 @@
                     <div class="metric-change" id="criticalBinsChange">Require immediate attention</div>
                 </div>
             </div>
-            <div class="metric-card">
+            <div class="metric-card" onclick="navigateToBinsWithFilter('active')" style="cursor: pointer;">
                 <div class="metric-icon">
                     <i class="fas fa-broadcast-tower"></i>
                 </div>

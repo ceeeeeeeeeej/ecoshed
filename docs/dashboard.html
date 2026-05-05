@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoSched Admin Dashboard</title>
+    <title>EcoSched Administration Portal</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
     <link rel="icon" type="image/svg+xml"
         href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌱</text></svg>">
     <link rel="stylesheet" href="../css/main.css">
@@ -47,7 +49,7 @@
             <div class="sidebar-header">
                 <div class="logo">
                     <img src="../assets/image/logo/ecosched_logo.png" alt="EcoSched Logo" class="logo-image">
-                    <span>EcoSched</span>
+                    <span>EcoSched Admin</span>
                 </div>
                 <button class="sidebar-close" id="sidebarClose">
                     <i class="fas fa-times"></i>
@@ -57,11 +59,11 @@
             <ul class="sidebar-menu">
                 <li class="menu-item active" data-page="dashboard">
                     <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+                    <span>Operations Overview</span>
                 </li>
                 <li class="menu-item" data-page="users">
                     <i class="fas fa-users"></i>
-                    <span>Registered users</span>
+                    <span>Registered Users</span>
                 </li>
 
                 <li class="menu-item" data-page="schedules">
@@ -88,10 +90,6 @@
                     <i class="fas fa-bell"></i>
                     <span>Notifications</span>
                 </li>
-                <li class="menu-item" data-page="settings">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </li>
             </ul>
 
             <div class="sidebar-footer">
@@ -100,9 +98,9 @@
                         <i class="fas fa-user"></i>
                     </div>
                     <div class="user-info">
-                        <span class="user-name" id="sidebarUserName">Admin User</span>
-                        <span class="user-role" id="sidebarUserRole">System Administrator</span>
-                        <span class="user-email" id="sidebarUserEmail">admin@ecosched.com</span>
+                        <span class="user-name" id="sidebarUserName">Administrator</span>
+                        <span class="user-role" id="sidebarUserRole">Platform Administrator</span>
+                        <span class="user-email" id="sidebarUserEmail">admin@gmail.com</span>
                     </div>
                     <div class="logout-icon">
                         <i class="fas fa-sign-out-alt"></i>
@@ -119,7 +117,7 @@
                     <button class="sidebar-toggle">
                         <i class="fas fa-bars"></i>
                     </button>
-                    <h1 class="page-title">Dashboard</h1>
+                    <h1 class="page-title">Operations Overview</h1>
                 </div>
 
                 <div class="header-right">
@@ -131,8 +129,8 @@
                                 <i class="fas fa-user"></i>
                             </div>
                             <div class="user-meta">
-                                <span class="user-meta-name" id="userMenuName">Admin User</span>
-                                <span class="user-meta-role" id="userMenuRole">System Administrator</span>
+                                <span class="user-meta-name" id="userMenuName">Administrator</span>
+                                <span class="user-meta-role" id="userMenuRole">Platform Administrator</span>
                             </div>
                             <i class="fas fa-chevron-down"></i>
                         </button>
@@ -142,27 +140,27 @@
                                     <i class="fas fa-user"></i>
                                 </div>
                                 <div>
-                                    <p class="user-dropdown-name" id="userDropdownName">Admin User</p>
+                                    <p class="user-dropdown-name" id="userDropdownName">Administrator</p>
                                     <p class="user-dropdown-email" id="userDropdownEmail">admin@ecosched.com</p>
                                 </div>
                             </div>
                             <div class="user-dropdown-info">
                                 <div>
                                     <span class="label">Role</span>
-                                    <p id="userDropdownRole">System Administrator</p>
+                                    <p id="userDropdownRole">Platform Administrator</p>
                                 </div>
                                 <div>
-                                    <span class="label">Service Area</span>
+                                    <span class="label">Assigned Service Area</span>
                                     <p id="userDropdownServiceArea">Head Office</p>
                                 </div>
                                 <div>
-                                    <span class="label">Last Login</span>
+                                    <span class="label">Last Sign-In</span>
                                     <p id="userDropdownLastLogin">Just now</p>
                                 </div>
                             </div>
                             <div class="user-dropdown-actions">
-                                <button class="btn btn-secondary" id="manageProfileBtn" type="button">Manage
-                                    Profile</button>
+                                <button class="btn btn-secondary" id="manageProfileBtn" type="button">Account
+                                    Settings</button>
                                 <button class="btn btn-primary" id="userLogoutBtn" type="button">Logout</button>
                             </div>
                         </div>
@@ -181,9 +179,15 @@
                                 <i class="fas fa-users"></i>
                             </div>
                             <div class="stat-content">
-                                <h3>Total Users</h3>
+                                <h3>Registered Accounts</h3>
                                 <div class="stat-number" id="totalUsers">0</div>
+                                <div id="pendingApprovalsAlert"
+                                    style="display: none; font-size: 0.75rem; color: #ef4444; font-weight: 600; margin-top: 4px;">
+                                    <i class="fas fa-exclamation-circle"></i> <span id="pendingUsersCount">0</span>
+                                    pending approvals
+                                </div>
                             </div>
+
                         </div>
 
 
@@ -193,9 +197,9 @@
                                 <i class="fas fa-bell"></i>
                             </div>
                             <div class="stat-content">
-                                <h3>Notifications</h3>
+                                <h3>System Notifications</h3>
                                 <div class="stat-number" id="totalNotifications">0</div>
-                                <div class="stat-change positive">New Updates</div>
+                                <div class="stat-change positive">New Alerts</div>
                                 <div class="stat-detail">
                                     <span class="detail-item">Feedback: <strong id="feedbackCount">0</strong></span>
                                     <span class="detail-item">Special: <strong id="specialCount">0</strong></span>
@@ -211,9 +215,9 @@
                                 <i class="fas fa-network-wired"></i>
                             </div>
                             <div class="stat-content">
-                                <h3>Sensor Network</h3>
+                                <h3>Smart Sensor Network</h3>
                                 <div class="stat-number" id="iotSensors">0</div>
-                                <div class="stat-change positive">Active Nodes</div>
+                                <div class="stat-change positive">Active Devices</div>
                                 <div class="stat-detail">
                                     <span class="detail-item">Online: <strong id="onlineSensors">0</strong></span>
                                     <span class="detail-item">Offline: <strong id="offlineSensors">0</strong></span>

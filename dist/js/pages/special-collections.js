@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 console.log("%c🚀 DISK UPDATE VERIFIED: special-collections.js loaded", "color: white; background: purple; padding: 10px; font-size: 20px;");
 import { supabase, dbService, realtime, utils, authService } from '../../config/supabase_config.js?v=102';
 
@@ -135,17 +135,21 @@ function createCollectionCard(collection) {
     const fullLocation = [location, street, barangay].filter(Boolean).join(', ');
 
     return `
-        <div class="collection-card">
+        <div class="collection-card" onclick="openDetailsModal(${JSON.stringify(collection).replace(/"/g, '&quot;')})">
             <div class="collection-header">
                 <div>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <h4>${collection.residentName || 'Unknown Resident'} ${age ? `<span style="font-weight:normal; font-size:0.8rem; color:#6b7280;">(${age} yrs)</span>` : ''}</h4>
                         <span class="text-muted" style="font-size:0.75rem;">• ${utils.getRelativeTime ? utils.getRelativeTime(createdDate) : formatDate(createdDate)}</span>
                     </div>
-                    <p class="text-muted"><i class="fa-solid fa-map-marker-alt"></i> ${fullLocation || 'No location specified'}</p>
+                    <p class="text-muted" style="margin-top: 4px; font-size: 0.9rem;">
+                        <i class="fa-solid fa-map-marker-alt" style="color: #64748b; margin-right: 4px;"></i>
+                        ${fullLocation || 'No location specified'}
+                    </p>
                 </div>
                 <span class="status-badge ${statusClass}">${statusText}</span>
             </div>
+
             <div class="collection-details">
                 <div class="detail-item">
                     <i class="fa-solid fa-trash-can"></i>
@@ -161,37 +165,31 @@ function createCollectionCard(collection) {
                         <span class="detail-value">${collection.estimatedQuantity || '-'}</span>
                     </div>
                 </div>
-                
-                ${collection.paymentReference ? `
-                <div class="detail-item">
-                    <i class="fa-solid fa-receipt"></i>
-                    <div>
-                        <span class="detail-label">Payment Ref</span>
-                        <span class="detail-value" style="font-family:monospace; background:#f3f4f6; padding:2px 6px; border-radius:4px;">${collection.paymentReference}</span>
-                    </div>
-                </div>
-                ` : ''}
-
-                ${scheduledDate ? `
-                <div class="detail-item" style="grid-column: span 2; background-color: #f0fdf4; padding: 8px; border-radius: 6px; border: 1px solid #bbf7d0;">
-                    <i class="fa-solid fa-truck-pickup" style="color: #16a34a;"></i>
-                    <div>
-                        <span class="detail-label" style="color: #166534;">Scheduled Pickup</span>
-                        <span class="detail-value" style="color: #15803d; font-weight:600;">${formatDate(scheduledDate)} @ ${formatTimeLabel(collection.scheduledTime)}</span>
-                    </div>
-                </div>
-                ` : ''}
             </div>
-            
-            ${collection.specialInstructions ? `
-            <div class="collection-instructions">
-                <i class="fa-solid fa-circle-info text-muted"></i>
-                <span class="text-muted text-sm">"${collection.specialInstructions}"</span>
+
+            ${scheduledDate ? `
+            <div class="scheduled-pickup-banner">
+                <i class="fa-solid fa-truck-pickup"></i>
+                <div>
+                    <span class="banner-label">Scheduled Pickup</span>
+                    <span class="banner-value">${formatDate(scheduledDate)} @ ${formatTimeLabel(collection.scheduledTime)}</span>
+                </div>
             </div>
             ` : ''}
 
-            <div class="collection-actions">
+            ${collection.specialInstructions ? `
+            <div class="collection-instructions" style="margin-top: 0.5rem; padding: 0.75rem; background: #f9fafb; border-radius: 12px; display: flex; gap: 8px; align-items: center;">
+                <i class="fa-solid fa-circle-info" style="color: #9ca3af;"></i>
+                <span class="text-muted" style="font-style: italic; font-size: 0.9rem;">"${collection.specialInstructions}"</span>
+            </div>
+            ` : ''}
+
+            <div class="collection-actions" style="margin-top: 1rem; display: flex; gap: 8px;">
                 ${renderActionButtons(collection)}
+            </div>
+
+            <div class="view-details-footer">
+                <i class="fas fa-eye"></i> View Details
             </div>
         </div>
     `;
@@ -228,7 +226,7 @@ function renderActionButtons(collection) {
                 <i class="fas fa-check"></i> Mark Complete
             </button>
         `);
-        
+
         buttons.push(`
             <button class="btn-sm btn-danger" style="margin-top: 5px;" data-action="cancel" data-id="${collection.id}">
                 <i class="fas fa-times"></i> Cancel Request
@@ -242,7 +240,8 @@ function renderActionButtons(collection) {
 function addActionButtonListeners() {
     const actionButtons = document.querySelectorAll('[data-action]');
     actionButtons.forEach(button => {
-        button.addEventListener('click', async () => {
+        button.addEventListener('click', async (e) => {
+            e.stopPropagation(); // Prevent card click (View Details)
             const action = button.dataset.action;
             const id = button.dataset.id;
             const collection = specialCollections.find(c => c.id === id);
@@ -277,7 +276,7 @@ async function confirmCancelCollection(collection) {
 
     try {
         if (dbService && dbService.updateSpecialCollection) {
-            const { error } = await dbService.updateSpecialCollection(collection.id, { 
+            const { error } = await dbService.updateSpecialCollection(collection.id, {
                 status: 'cancelled'
             });
             if (error) throw error;
@@ -536,11 +535,11 @@ function formatDate(date) {
 function formatTimeLabel(timeStr) {
     if (!timeStr) return 'TBD';
     if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
-    
+
     try {
         const [hour, minute] = timeStr.split(':').map(Number);
         if (isNaN(hour) || isNaN(minute)) return timeStr;
-        
+
         const ampm = hour >= 12 ? 'PM' : 'AM';
         const h12 = hour % 12 || 12;
         return `${h12.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')} ${ampm}`;

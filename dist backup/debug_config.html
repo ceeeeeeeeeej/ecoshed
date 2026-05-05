@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Debug Config</title></head>
+<body>
+    <h1>Check Console</h1>
+    <script type="module">
+        import { dbService } from './config/supabase_config.js';
+        console.log('dbService keys:', Object.keys(dbService));
+        document.body.innerHTML += '<pre>' + JSON.stringify(Object.keys(dbService), null, 2) + '</pre>';
+        if (dbService.getWasteManagementPlans) {
+            document.body.innerHTML += '<h2 style="color:green">SUCCESS: getWasteManagementPlans found!</h2>';
+        } else {
+            document.body.innerHTML += '<h2 style="color:red">FAILURE: getWasteManagementPlans NOT found!</h2>';
+        }
+    </script>
+</body>
+</html>

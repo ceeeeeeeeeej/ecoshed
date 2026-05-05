@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EcoSched Admin Login</title>
+    <title>EcoSched Admin Portal Login</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
     <link rel="stylesheet" href="../css/landing.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -83,8 +85,8 @@
     </div>
 
     <script type="module">
-        // Import Firebase services
-        import { authService, dbService, utils } from '../config/supabase_config.js?v=2.0';
+        // Import Supabase services
+        import { authService, dbService, utils } from '../config/supabase_config.js?v=3.0';
 
         // Login-specific functionality
         document.addEventListener('DOMContentLoaded', function () {
@@ -170,13 +172,13 @@
             }
 
             try {
-                // Authenticate with Firebase
+                // Authenticate with Supabase
                 const { user, error } = await authService.signIn(loginData.email, loginData.password);
                 if (error || !user) {
                     throw error || new Error('Invalid email or password');
                 }
 
-                // Load admin profile from Firestore
+                // Load admin profile from Supabase
                 let userData = null;
                 if (dbService && dbService.getUserById) {
                     console.log('🔍 DEBUG: Fetching user profile for ID:', user.id);
@@ -185,12 +187,24 @@
                     console.log('🔍 DEBUG: Profile error:', profileError);
 
                     if (profileError || !data) {
-                        if (authService && authService.signOut) {
-                            await authService.signOut();
+                        console.log('🔄 Profile not found. Attempting to sync/recover profile...');
+                        
+                        // Attempt to automatically provision/sync the profile
+                        const { data: syncedData, error: syncError } = await dbService.syncUserProfile(user);
+                        
+                        if (syncError || !syncedData) {
+                            console.error('❌ Auto-sync failed:', syncError);
+                            if (authService && authService.signOut) {
+                                await authService.signOut();
+                            }
+                            throw new Error('Access denied. Your account exists but has no linked record in the "users" table, and auto-sync failed.');
                         }
-                        throw new Error('Access denied. This account is not authorized to access the admin dashboard.');
+                        
+                        console.log('✅ Profile synced successfully during login');
+                        userData = syncedData;
+                    } else {
+                        userData = data;
                     }
-                    userData = data;
                 }
 
                 // Enforce status checks

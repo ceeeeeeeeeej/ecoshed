@@ -1,1 +1,299 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>Registered Users - EcoSched Admin</title><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;"><link rel="stylesheet" href="./css/main.css" /><link rel="stylesheet" href="./css/pages/users.css" /><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" /><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" /></head><body><div class="page-container"><div class="page-header"><div class="header-left"><h1 class="page-title"><i class="fas fa-id-card"></i> Registered Users </h1><p class="page-subtitle"> Monitor user accounts, roles, and statuses </p></div><div class="header-right"><button class="btn btn-primary" onclick="openAddUserModal()"><i class="fas fa-plus"></i> Register User </button></div></div><div class="filters-container"><div class="filters-row"><div class="filter-group"><label>Search Users</label><div class="search-input"><i class="fas fa-search"></i><input type="text" id="userSearch" placeholder="Search by name, email, or role..." oninput="handleSearch(event)" /></div></div><div class="filter-group"><label>Role</label><select class="filter-select" id="roleFilter"><option value="">All Roles</option><option value="admin">Admin</option><option value="collector">Collector</option><option value="resident">Resident</option></select></div><div class="filter-group"><button class="btn btn-secondary" onclick="resetFilters()"><i class="fas fa-undo"></i> Reset </button></div></div></div><div class="table-container"><div class="table-header"><div class="table-actions"><button class="btn btn-outline" onclick="selectAllUsers()"><i class="fas fa-check-square"></i> Select All </button><button class="btn btn-outline" onclick="bulkAction('approve')" style=" background: linear-gradient(135deg, #10b981, #059669); color: white; "><i class="fas fa-user-check"></i> Approve Selected </button><button class="btn btn-outline" onclick="bulkAction('activate')"><i class="fas fa-user-check"></i> Activate </button><button class="btn btn-outline" onclick="bulkAction('deactivate')"><i class="fas fa-user-times"></i> Deactivate </button><button class="btn btn-outline btn-danger" onclick="bulkAction('delete')"><i class="fas fa-trash"></i> Delete </button></div><div class="table-info"><span id="userCount">0 users</span></div></div><div class="table-wrapper"><table class="data-table" id="usersTable"><thead><tr><th width="50"><input type="checkbox" class="select-all" onchange="toggleSelectAll(this)" /></th><th>User</th><th>Role</th><th>Purok</th><th>Phone</th><th width="150">Actions</th></tr></thead><tbody id="usersTableBody"></tbody></table></div></div><div class="pagination-container"><div class="pagination-info"><span>Showing <span id="showingStart">1</span>-<span id="showingEnd">10</span> of <span id="totalUsers">0</span> users</span></div><div class="pagination-controls"><button class="pagination-btn" id="prevPage" onclick="changePage(-1)"><i class="fas fa-chevron-left"></i></button><div class="page-numbers" id="pageNumbers"></div><button class="pagination-btn" id="nextPage" onclick="changePage(1)"><i class="fas fa-chevron-right"></i></button></div></div></div><div id="addUserModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Register User</h3><button class="modal-close" onclick="closeAddUserModal()"><i class="fas fa-times"></i></button></div><form class="modal-form" id="addUserForm"><div class="form-row"><div class="form-group"><label for="firstName">First Name</label><input type="text" id="firstName" name="firstName" required /></div><div class="form-group"><label for="lastName">Last Name</label><input type="text" id="lastName" name="lastName" required /></div></div><div class="form-group"><label for="email">Email Address</label><input type="email" id="email" name="email" required /></div><div class="form-group"><label for="phone">Phone Number</label><input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" /></div><div class="form-row"><div class="form-group"><label for="role">Role</label><select id="role" name="role" required><option value="collector" selected>Collector</option><option value="resident">Resident</option><!-- <option value="municipal">Municipal</option> --><option value="admin">Administrator</option></select></div><div class="form-group"><label for="location">Barangay</label><select id="location" name="location" required><option value="">Select Barangay</option><option value="Victoria">Victoria</option><option value="Dayo-An">Dayo-An</option></select></div><div class="form-group"><label for="purok">Purok</label><input type="text" id="purok" name="purok" placeholder="e.g. Purok 1" /></div></div><div class="form-group"><label for="password">Temporary Password</label><input type="password" id="password" name="password" placeholder="Create password" required /></div><div class="modal-actions"><button type="button" class="btn btn-secondary" onclick="closeAddUserModal()"> Cancel </button><button type="submit" class="btn btn-primary">Save User</button></div></form></div></div><div id="viewUserModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>User Details</h3><button class="modal-close" onclick="closeViewUserModal()"><i class="fas fa-times"></i></button></div><div class="modal-form" style="gap: 1rem"><div class="form-group"><label>Full Name</label><p id="viewFullName">-</p></div><div class="form-group"><label>Email</label><p id="viewEmail">-</p></div><div class="form-group"><label>Phone</label><p id="viewPhone">-</p></div><div class="form-group"><label>Role</label><p id="viewRole">-</p></div><div class="form-group"><label>Barangay</label><p id="viewLocation">-</p></div><div class="form-group"><label>Purok</label><p id="viewPurok">-</p></div><div class="modal-actions"><button type="button" class="btn btn-primary" onclick="closeViewUserModal()"> Close </button></div></div></div></div><div id="editUserModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Edit User</h3><button class="modal-close" onclick="closeEditUserModal()"><i class="fas fa-times"></i></button></div><form class="modal-form" id="editUserForm"><div class="form-row"><div class="form-group"><label for="editFirstName">First Name</label><input type="text" id="editFirstName" name="editFirstName" required /></div><div class="form-group"><label for="editLastName">Last Name</label><input type="text" id="editLastName" name="editLastName" required /></div></div><div class="form-group"><label for="editEmail">Email Address</label><input type="email" id="editEmail" name="editEmail" required /></div><div class="form-group"><label for="editPhone">Phone Number</label><input type="tel" id="editPhone" name="editPhone" placeholder="(555) 123-4567" /></div><div class="form-row"><div class="form-group"><label for="editRole">Role</label><select id="editRole" name="editRole" required><option value="collector">Collector</option><option value="resident">Resident</option><option value="admin">Administrator</option></select></div><div class="form-row"><div class="form-group"><label for="editLocation">Barangay</label><select id="editLocation" name="editLocation" required><option value="Victoria">Victoria</option><option value="Dayo-An">Dayo-An</option></select></div><div class="form-group"><label for="editPurok">Purok</label><input type="text" id="editPurok" name="editPurok" placeholder="e.g. Purok 1" /></div></div><div class="modal-actions"><button type="button" class="btn btn-secondary" onclick="closeEditUserModal()"> Cancel </button><button type="submit" class="btn btn-primary">Save Changes</button></div></form></div></div><script type="module" src="./js/pages/users.js?v=2.0"></script></body></html>
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registered Users - EcoSched Admin</title>
+  <link rel="stylesheet" href="./css/main.css" />
+  <link rel="stylesheet" href="./css/pages/users.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+  <div class="page-container">
+    <div class="sticky-header-wrapper">
+      <div class="page-header">
+        <div class="header-left">
+          <h1 class="page-title">
+            <i class="fas fa-id-card"></i>
+            Registered Users
+          </h1>
+          <p class="page-subtitle">
+            Monitor user accounts, roles, and statuses
+          </p>
+        </div>
+        <div class="header-right">
+          <button class="btn btn-primary" onclick="openAddUserModal()">
+            <i class="fas fa-plus"></i>
+            Register User
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-container">
+      <div class="filters-row">
+        <div class="filter-group">
+          <label>Search Users</label>
+          <div class="search-input">
+            <i class="fas fa-search"></i>
+            <input type="text" id="userSearch" placeholder="Search by name, email, or role..."
+              oninput="handleSearch(event)" />
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Role</label>
+          <select class="filter-select" id="roleFilter">
+            <option value="">All Roles</option>
+            <option value="admin">Admin</option>
+            <option value="collector">Collector</option>
+            <option value="resident">Resident</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select class="filter-select" id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="pending_approval">Pending Approval</option>
+            <option value="pending_verification">Pending Verification</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <div class="table-actions">
+          <button class="btn btn-outline" onclick="selectAllUsers()">
+            <i class="fas fa-check-square"></i>
+            Select All
+          </button>
+          <button class="btn btn-outline" onclick="bulkAction('approve')" style="
+                background: linear-gradient(135deg, #10b981, #059669);
+                color: white;
+              ">
+            <i class="fas fa-user-check"></i>
+            Approve Selected
+          </button>
+          <button class="btn btn-outline btn-danger" onclick="bulkAction('delete')">
+            <i class="fas fa-trash"></i>
+            Delete
+          </button>
+        </div>
+        <div class="table-info">
+          <span id="userCount">0 users</span>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="data-table" id="usersTable">
+          <thead>
+            <tr>
+              <th width="50">
+                <input type="checkbox" class="select-all" onchange="toggleSelectAll(this)" />
+              </th>
+              <th>User</th>
+              <th>Role</th>
+              <th>Purok</th>
+              <th>Phone</th>
+              <th width="150">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="pagination-container">
+      <div class="pagination-info">
+        <span>Showing <span id="showingStart">1</span>-<span id="showingEnd">10</span>
+          of <span id="totalUsers">0</span> users</span>
+      </div>
+      <div class="pagination-controls">
+        <button class="pagination-btn" id="prevPage" onclick="changePage(-1)">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <div class="page-numbers" id="pageNumbers"></div>
+        <button class="pagination-btn" id="nextPage" onclick="changePage(1)">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="addUserModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Register User</h3>
+        <button class="modal-close" onclick="closeAddUserModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form class="modal-form" id="addUserForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName" required />
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" name="lastName" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" id="phone" name="phone" placeholder="(555) 123-4567" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="role">Role</label>
+            <select id="role" name="role" required>
+              <option value="collector" selected>Collector</option>
+              <option value="admin">Administrator</option>
+            </select>
+            <p class="role-hint" style="font-size: 0.75rem; color: #6b7280; margin-top: 5px;">
+              <i class="fas fa-info-circle"></i> Collectors will be automatically registered for mobile app access.
+            </p>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">Temporary Password</label>
+          <div class="password-input-wrapper" style="position: relative;">
+            <input type="password" id="password" name="password" placeholder="Create password" required
+              style="width: 100%;" />
+            <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('password')"
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;"></i>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <div class="password-input-wrapper" style="position: relative;">
+            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm password" required
+              style="width: 100%;" />
+            <i class="fas fa-eye toggle-password" onclick="togglePasswordVisibility('confirmPassword')"
+              style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6b7280;"></i>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="viewUserModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>User Details</h3>
+        <button class="modal-close" onclick="closeViewUserModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-form" style="gap: 1rem">
+        <div class="form-group">
+          <label>Full Name</label>
+          <p id="viewFullName">-</p>
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <p id="viewEmail">-</p>
+        </div>
+        <div class="form-group">
+          <label>Phone</label>
+          <p id="viewPhone">-</p>
+        </div>
+        <div class="form-group">
+          <label>Role</label>
+          <p id="viewRole">-</p>
+        </div>
+        <div class="form-group">
+          <label>Barangay</label>
+          <p id="viewLocation">-</p>
+        </div>
+        <div class="form-group">
+          <label>Purok</label>
+          <p id="viewPurok">-</p>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary" onclick="closeViewUserModal()">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="editUserModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Edit User</h3>
+        <button class="modal-close" onclick="closeEditUserModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <form class="modal-form" id="editUserForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editFirstName">First Name</label>
+            <input type="text" id="editFirstName" name="editFirstName" required />
+          </div>
+          <div class="form-group">
+            <label for="editLastName">Last Name</label>
+            <input type="text" id="editLastName" name="editLastName" required />
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="editEmail">Email Address</label>
+          <input type="email" id="editEmail" name="editEmail" required />
+        </div>
+        <div class="form-group">
+          <label for="editPhone">Phone Number</label>
+          <input type="tel" id="editPhone" name="editPhone" placeholder="(555) 123-4567" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="editRole">Role</label>
+            <select id="editRole" name="editRole" required>
+              <option value="collector">Collector</option>
+              <option value="resident">Resident</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editLocation">Barangay</label>
+            <select id="editLocation" name="editLocation" required>
+              <option value="Victoria">Victoria</option>
+              <option value="Dayo-An">Dayo-An</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editPurok">Purok</label>
+            <input type="text" id="editPurok" name="editPurok" placeholder="e.g. Purok 1" />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeEditUserModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="./js/pages/users.js?v=2.0"></script>
+</body>
+
+</html>

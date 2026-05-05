@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>System Settings - EcoSched Admin</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
     <link rel="stylesheet" href="../css/main.css">
     <link rel="stylesheet" href="../css/pages/settings.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -59,7 +61,7 @@
                 <div class="settings-form">
                     <div class="form-group">
                         <label for="systemName">System Name</label>
-                        <input type="text" id="systemName" value="EcoSched Admin Dashboard">
+                        <input type="text" id="systemName" value="EcoSched Administration Portal">
                     </div>
                     <div class="form-group">
                         <label for="timezone">Timezone</label>
@@ -99,7 +101,7 @@
                 <div class="settings-form">
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" id="allowUserRegistration" checked>
+                            <input type="checkbox" id="allowUserRegistration" checked aria-label="Allow User Registration">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -109,7 +111,7 @@
                     </div>
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" checked aria-label="Email Verification Required">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -119,7 +121,7 @@
                     </div>
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" id="adminApprovalRequired">
+                            <input type="checkbox" id="adminApprovalRequired" aria-label="Admin Approval Required">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -139,7 +141,7 @@
                 <div class="settings-form">
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" checked aria-label="Email Notifications">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -149,7 +151,7 @@
                     </div>
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" checked aria-label="Push Notifications">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -159,7 +161,7 @@
                     </div>
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox">
+                            <input type="checkbox" aria-label="SMS Notifications">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -237,7 +239,7 @@
                 <div class="settings-form">
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" checked aria-label="Two-Factor Authentication">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -247,7 +249,7 @@
                     </div>
                     <div class="setting-item">
                         <label class="switch">
-                            <input type="checkbox" checked>
+                            <input type="checkbox" checked aria-label="Session Timeout">
                             <span class="slider"></span>
                         </label>
                         <div class="setting-info">
@@ -281,7 +283,7 @@
                         <h3>Automatic Backups</h3>
                         <div class="setting-item">
                             <label class="switch">
-                                <input type="checkbox" checked>
+                                <input type="checkbox" checked aria-label="Enable Automatic Backups">
                                 <span class="slider"></span>
                             </label>
                             <div class="setting-info">

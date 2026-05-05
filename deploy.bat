@@ -11,19 +11,19 @@ REM Install dependencies
 echo [INFO] Checking dependencies...
 if exist package.json (
     call npm install
-    if %errorlevel% neq 0 (
-        echo [ERROR] Failed to install dependencies
-        pause
-        exit /b 1
-    )
-    echo [SUCCESS] Dependencies are ready!
 )
+if errorlevel 1 (
+    echo [ERROR] Failed to install dependencies
+    pause
+    exit /b 1
+)
+echo [SUCCESS] Dependencies are ready!
 
 REM Run build
 echo.
 echo [INFO] Starting Production Build...
-call npm run build
-if %errorlevel% neq 0 (
+call npm run build:prod
+if errorlevel 1 (
     echo [ERROR] Build failed!
     pause
     exit /b 1

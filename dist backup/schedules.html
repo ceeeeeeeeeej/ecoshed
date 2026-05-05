@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule Management - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/schedules.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Schedule Management <span style="font-size: 0.7rem; color: #9ca3af; font-weight: 400; vertical-align: middle; margin-left: 8px;">v1.2</span>
+                </h1>
+                <p class="page-subtitle">Manage barangay collection schedules - reschedule anytime</p>
+            </div>
+            <div class="header-right" style="display: flex; gap: 10px;">
+                <button class="btn btn-outline" id="toggleCalendarBtn" onclick="toggleCalendarVisibility()" style="display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-calendar-alt"></i>
+                    Calendar
+                </button>
+                <button class="btn btn-primary" onclick="openAddAreaScheduleModal()">
+                    <i class="fas fa-plus"></i>
+                    New Area Schedule
+                </button>
+            </div>
+        </div>
+
+        <!-- Calendar View -->
+        <div class="calendar-container" id="calendarSection" style="display: none; transition: max-height 0.3s ease-in-out;">
+            <div class="calendar-header">
+                <button class="btn btn-outline" onclick="previousMonth()">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h2 id="currentMonth">December 2024</h2>
+                <button class="btn btn-outline" onclick="nextMonth()">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar will be generated here -->
+            </div>
+        </div>
+
+        <!-- Schedule List -->
+        <div class="schedule-list-container">
+            <div class="list-header" style="flex-wrap: wrap; gap: 10px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <input type="checkbox" id="selectAllSchedules" title="Select All" style="width: 18px; height: 18px; cursor: pointer;">
+                    <h3 style="margin: 0;">Upcoming Schedules</h3>
+                    <button id="bulkDeleteBtn" class="btn btn-danger" style="display: none; padding: 6px 12px; font-size: 13px; background-color: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer; display: none; align-items: center; gap: 5px;">
+                        <i class="fas fa-trash"></i> Delete Selected (<span id="selectedCount">0</span>)
+                    </button>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <div class="filter-toggle" style="display: flex; background: #f3f4f6; padding: 4px; border-radius: 8px; gap: 4px;">
+                        <button class="btn-filter active" onclick="setCollectionFilter('all')" data-filter="all">All</button>
+                        <button class="btn-filter" onclick="setCollectionFilter('regular')" data-filter="regular">Regular</button>
+                        <button class="btn-filter" onclick="setCollectionFilter('special')" data-filter="special">Special</button>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="btn btn-outline active" onclick="toggleView('list')">
+                            <i class="fas fa-list"></i>
+                            List
+                        </button>
+                        <button class="btn btn-outline" onclick="toggleView('grid')">
+                            <i class="fas fa-th"></i>
+                            Grid
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="schedule-list" id="scheduleList">
+                <!-- Schedules will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Schedule Modal -->
+    <div id="addScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Schedule Action</h3>
+                <button class="modal-close" onclick="closeAddScheduleModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form class="modal-form" id="addScheduleForm">
+                <input type="hidden" id="isReschedule" name="isReschedule" value="false">
+                <input type="hidden" id="originalDate" name="originalDate" value="">
+                <input type="hidden" id="originalTime" name="originalTime" value="">
+                <input type="hidden" id="residentId" name="residentId" value="">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="area">Barangay</label>
+                        <input type="text" id="area" name="area" list="barangayList"
+                            placeholder="Enter or select barangay" required>
+                        <datalist id="barangayList">
+                            <option value="Victoria">
+                            <option value="Gamut">
+                            <option value="Bajao & Cagdapao">
+                            <option value="Dayo-An & Unaban">
+                            <option value="Purisima">
+                            <option value="Kinabigtasan">
+                            <option value="Sumo-sumo & Umbay">
+                            <option value="Jubang & Unidos">
+                        </datalist>
+                    </div>
+                    <div class="form-group">
+                        <label for="frequency">Frequency</label>
+                        <select id="frequency" name="frequency" required onchange="toggleFrequencyUI()">
+                            <option value="weekly">Weekly Recurring</option>
+                            <option value="one-time">One-time Event</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Recurring Days Selection -->
+                <div id="recurringDaysContainer" class="form-group">
+                    <label>Collection Days</label>
+                    <div class="checkbox-group"
+                        style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="monday"> Mon</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="tuesday"> Tue</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="wednesday"> Wed</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="thursday"> Thu</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="friday"> Fri</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="saturday"> Sat</label>
+                        <label class="checkbox-item"><input type="checkbox" name="days" value="sunday"> Sun</label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" name="startDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="startTime">Start Time</label>
+                        <input type="time" id="startTime" name="startTime" required>
+                    </div>
+                </div>
+
+                <div class="form-group" id="residentInfoContainer">
+                    <label for="residentName">Resident Name (Optional)</label>
+                    <input type="text" id="residentNameField" name="residentName" placeholder="e.g. John Doe">
+                </div>
+
+                <div class="form-group" id="pickupLocationContainer">
+                    <label for="pickupLocation">Pickup Location (Optional)</label>
+                    <input type="text" id="pickupLocationField" name="pickupLocation" placeholder="e.g. Near the blue gate">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeAddScheduleModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="modalSubmitBtn">Confirm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/schedules.js"></script>
+</body>
+
+</html>

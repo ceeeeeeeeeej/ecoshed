@@ -24,7 +24,8 @@ export const TABLES = {
     COLLECTION_SCHEDULES: 'collection_schedules',
     AREA_SCHEDULES: 'area_schedules',
     ANNOUNCEMENTS: 'announcements',
-    REMINDERS: 'reminders'
+    REMINDERS: 'reminders',
+    WASTE_MANAGEMENT_PLANS: 'waste_management_plans'
 };
 
 // User roles
@@ -55,18 +56,17 @@ export const authService = {
 
             if (error) throw error;
 
-            // SECURITY: All new accounts require superadmin approval by default
-            // Only superadmins bypass approval to ensure administrative continuity
-            let userStatus = 'pending_approval';
+            // Determine account status:
+            // - If caller explicitly passes a status (e.g. 'active' for collectors), respect it.
+            // - Superadmins are always active.
+            // - All other accounts default to pending_approval.
+            let userStatus = userData.status || 'pending_approval';
 
-            console.log('signUp - Creating new account with role:', userData.role);
+            console.log('signUp - Creating new account with role:', userData.role, '| status:', userStatus);
 
-            // Superadmins bypass approval (ensure at least one admin can approve others)
             if (userData.role === 'superadmin') {
                 userStatus = 'active';
-                console.log('signUp - Superadmin account, setting status to active');
-            } else {
-                console.log('signUp - Regular account, setting status to pending_approval');
+                console.log('signUp - Superadmin account, forcing status to active');
             }
 
             // Create user profile in database
@@ -149,10 +149,13 @@ export const authService = {
     async createAuthUser(email, password, userData = {}) {
         try {
             const options = {};
-            if (userData.role || userData.fullName) {
+            if (userData.role || userData.fullName || userData.firstName) {
                 options.data = {
                     role: userData.role,
-                    full_name: userData.fullName
+                    full_name: userData.fullName || `${userData.firstName} ${userData.lastName}`.trim(),
+                    first_name: userData.firstName,
+                    last_name: userData.lastName,
+                    status: userData.status || 'active'
                 };
             }
 
@@ -197,6 +200,8 @@ export const dbService = {
             const { data, error } = await supabase
                 .from(TABLES.USERS)
                 .select('*')
+                .or('is_deleted.is.null,is_deleted.eq.false')
+                .neq('status', 'hidden')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -330,6 +335,93 @@ export const dbService = {
         }
     },
 
+    // Sync user profile (Auto-recovery for missing database records)
+    async syncUserProfile(user) {
+        try {
+            console.log('🔄 Attempting to sync user profile for:', user.email);
+            
+            // Extract some default info from email if name is missing
+            const emailName = user.email.split('@')[0];
+            const firstName = emailName.charAt(0).toUpperCase() + emailName.slice(1);
+
+            const { data, error } = await supabase
+                .from(TABLES.USERS)
+                .upsert({
+                    id: user.id,
+                    email: user.email,
+                    role: 'admin', // Default to admin for dashboard access attempts
+                    status: 'active', // Set to active to allow immediate recovery
+                    first_name: firstName,
+                    last_name: 'Admin',
+                    updated_at: new Date().toISOString(),
+                    created_at: new Date().toISOString()
+                }, {
+                    onConflict: 'id'
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            
+            console.log('✅ Profile synced successfully:', data);
+            return { data, error: null };
+        } catch (error) {
+            console.error('❌ Profile sync failed:', error);
+            return { data: null, error };
+        }
+    },
+
+    /**
+     * Creates a notification for all active collectors when a bin is detected as full.
+     * @param {Object} bin The bin data containing bin_id and location/address.
+     */
+    async createCollectorNotification(bin) {
+        try {
+            const binId = bin.bin_id || 'Unknown';
+            const location = bin.address || 'Unknown Location';
+            
+            console.log(`🔔 [Sync] Notifying collectors about full bin: ${binId}`);
+
+            // 1. Fetch all users with collector role
+            const { data: collectors, error: fetchError } = await supabase
+                .from(TABLES.USERS)
+                .select('id')
+                .eq('role', 'collector')
+                .eq('status', 'active');
+
+            if (fetchError) throw fetchError;
+            if (!collectors || collectors.length === 0) {
+                console.warn('⚠️ No active collectors found to notify.');
+                return { success: false, message: 'No active collectors' };
+            }
+
+            // 2. Prepare notifications for each collector
+            const notifications = collectors.map(collector => ({
+                user_id: collector.id,
+                barangay: 'Collector', // Technical alerts target the Collector area/role
+                title: '🚨 Full Bin Alert',
+                message: `Bin ${binId} at ${location} is full and needs collection.`,
+                type: 'bin_alert',
+                priority: 'high', // Changed from severity to priority
+                is_read: false,
+                created_at: new Date().toISOString()
+            }));
+
+            // 3. Insert into user_notifications table
+            const { error: insertError } = await supabase
+                .from(TABLES.NOTIFICATIONS)
+                .insert(notifications);
+
+            if (insertError) throw insertError;
+
+            console.log(`✅ Successfully created notifications for ${collectors.length} collectors.`);
+            return { success: true };
+        } catch (error) {
+            console.error('❌ Failed to create collector notifications:', error);
+            return { success: false, error };
+        }
+    },
+
     // Update user
     async updateUser(id, updates) {
         try {
@@ -402,10 +494,36 @@ export const dbService = {
     // Delete user
     async deleteUser(id) {
         try {
-            const { error } = await supabase
+            const deletedBy = supabase.auth.currentUser?.id || null;
+            let { error } = await supabase
                 .from(TABLES.USERS)
-                .delete()
+                .update({
+                    is_deleted: true,
+                    deleted_at: new Date().toISOString(),
+                    deleted_by: deletedBy,
+                    updated_at: new Date().toISOString()
+                })
                 .eq('id', id);
+
+            // Fallback for databases where the soft-delete columns
+            // have not been added yet.
+            if (error && (
+                String(error.message || '').includes('is_deleted') ||
+                String(error.message || '').includes('deleted_at') ||
+                String(error.message || '').includes('deleted_by') ||
+                String(error.details || '').includes('is_deleted') ||
+                String(error.details || '').includes('deleted_at') ||
+                String(error.details || '').includes('deleted_by')
+            )) {
+                const fallback = await supabase
+                    .from(TABLES.USERS)
+                    .update({
+                        status: 'hidden',
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', id);
+                error = fallback.error;
+            }
 
             return { error };
         } catch (error) {
@@ -536,7 +654,7 @@ export const dbService = {
         try {
             const { data, error } = await supabase
                 .from(TABLES.REGISTERED_COLLECTORS)
-                .insert({
+                .upsert({
                     user_id: collectorData.driverUserId || collectorData.userId,
                     collector_id: collectorData.collectorId,
                     driver_name: collectorData.driverName,
@@ -736,7 +854,7 @@ export const dbService = {
             // 🔔 Send push notification if status changed to 'completed'
             if (updates.status === 'completed' && data && data.resident_id) {
                 console.log('Sending completion notification to resident:', data.resident_id);
-                
+
                 // 1. In-app notification
                 const { error: notifError } = await supabase
                     .from(TABLES.NOTIFICATIONS)
@@ -750,15 +868,15 @@ export const dbService = {
 
                 if (notifError) console.error('Notification error:', notifError);
 
-            // 🔔 DB TRIGGER HANDLES PUSH: The new database trigger on user_notifications 
-            // will automatically call send-push-v2 for residents and collectors.
-            // No manual fetch(push) remains in this clean version.
+                // 🔔 DB TRIGGER HANDLES PUSH: The new database trigger on user_notifications 
+                // will automatically call send-push-v2 for residents and collectors.
+                // No manual fetch(push) remains in this clean version.
             }
 
             // 🔔 Send push notification if status changed to 'cancelled' (Admin action)
             if (updates.status === 'cancelled' && data && data.resident_id) {
                 console.log('Sending cancellation notification to resident and collectors:', data.resident_id);
-                
+
                 // 1. Notify Resident (In-app)
                 const { error: notifError } = await supabase
                     .from(TABLES.NOTIFICATIONS)
@@ -788,7 +906,7 @@ export const dbService = {
                 } catch (err) {
                     console.error('💥 Critical cancellation error:', err);
                 }
- 
+
                 // 🚛 3. Notify ALL Collectors (Push Only)
                 try {
                     // Check both tables for collectors
@@ -796,24 +914,24 @@ export const dbService = {
                         .from('users')
                         .select('id')
                         .or('role.eq.collector,role.eq.Collector');
-                    
+
                     const { data: registeredCollectors } = await supabase
                         .from('registered_collectors')
                         .select('user_id');
- 
+
                     const allCollectorIds = new Set([
                         ...(usersWithRole || []).map(u => u.id),
                         ...(registeredCollectors || []).map(c => c.user_id)
                     ]);
-                    
+
                     if (allCollectorIds.size > 0) {
                         const title = "🚨 Collection Cancelled | Gikanselar ang pagkolekta";
                         const body = `Scheduled pickup for ${data.resident_name || 'Resident'} (${data.waste_type || 'General Waste'}) has been cancelled by admin. \n\n Kanselado na ang schedule para kay ${data.resident_name || 'Resident'} (${data.waste_type || 'General Waste'}).`;
-                        
+
                         // Notify each collector via Edge Function
                         for (const id of Array.from(allCollectorIds)) {
                             if (!id) continue;
-                            
+
                             supabase.functions.invoke('send-push-v2', {
                                 headers: { 'apikey': SUPABASE_ANON_KEY },
                                 body: { resident_id: id, title, body }
@@ -1001,7 +1119,7 @@ export const dbService = {
             try {
                 // Get all collector IDs with a broader role filter
                 console.log('🔍 Searching for collectors in database...');
-                
+
                 const [{ data: usersWithRole }, { data: registeredCollectors }] = await Promise.all([
                     supabase.from('users').select('id, role, email'),
                     supabase.from('registered_collectors').select('user_id, email')
@@ -1157,7 +1275,7 @@ export const dbService = {
             return { data: null, error };
         }
     },
-    
+
 
     // Get bins/sensors
     async getBins() {
@@ -1300,7 +1418,7 @@ export const dbService = {
                 console.error('🗑️ [DB] Delete Failed for ID:', id, error);
                 throw error;
             }
-            
+
             console.log(`🗑️ [DB] Delete Successful! Removed ${count} rows.`);
             return { data, error: null, count };
         } catch (error) {
@@ -1385,6 +1503,43 @@ export const dbService = {
         }
     },
 
+    // Update resident feedback
+    async updateResidentFeedback(id, updates) {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.RESIDENT_FEEDBACK)
+                .update({
+                    ...updates,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { data: mapFeedbackData([data])[0], error: null };
+        } catch (error) {
+            console.error('updateResidentFeedback error:', error);
+            return { data: null, error };
+        }
+    },
+
+    // Delete resident feedback
+    async deleteResidentFeedback(id) {
+        try {
+            const { error } = await supabase
+                .from(TABLES.RESIDENT_FEEDBACK)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            return { error: null };
+        } catch (error) {
+            console.error('deleteResidentFeedback error:', error);
+            return { error };
+        }
+    },
+
     // Get notifications
     async getNotifications(limitCount = 50, userId = null) {
         try {
@@ -1433,12 +1588,12 @@ export const dbService = {
             }
 
             const { count: unreadPersonal, error: personalError } = await personalQuery;
-            
+
             // For now, community notifications are always counted as read or unread based on your needs
             // In this specific app, admins consider 'user_notifications' as the primary source of unread alerts
             // Count community notifications from last 24h as "today's" or similar if needed
-            
-            return { 
+
+            return {
                 unread: unreadPersonal || 0,
                 error: personalError
             };
@@ -1463,7 +1618,7 @@ export const dbService = {
             if (notificationData.userId || notificationData.user_id) {
                 dbPayload.user_id = notificationData.userId || notificationData.user_id;
             }
-            
+
             if (notificationData.barangay) {
                 dbPayload.barangay = notificationData.barangay;
             }
@@ -1507,10 +1662,34 @@ export const dbService = {
 
             const rowsAffected = data?.length || 0;
             console.log(`✅ Update successful, rows affected: ${rowsAffected}`);
-            
+
             return { data: data?.[0] || null, error: null };
         } catch (error) {
             console.error('❌ Catch-all error in updateNotification:', error);
+            return { data: null, error };
+        }
+    },
+
+    // Update multiple notifications at once
+    async updateMultipleNotifications(ids, updates) {
+        console.log(`💾 dbService.updateMultipleNotifications called for ${ids.length} items`);
+        try {
+            const dbUpdates = { ...updates };
+            if (updates.read !== undefined) {
+                dbUpdates.is_read = updates.read;
+                delete dbUpdates.read;
+            }
+
+            const { data, error } = await supabase
+                .from(TABLES.NOTIFICATIONS)
+                .update(dbUpdates)
+                .in('id', ids)
+                .select();
+
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('❌ Error in updateMultipleNotifications:', error);
             return { data: null, error };
         }
     },
@@ -1530,6 +1709,23 @@ export const dbService = {
         }
     },
 
+    // Delete all notifications for a user
+    async deleteAllNotifications(userId) {
+        if (!userId) return { success: false, error: 'No user ID provided' };
+        try {
+            const { error } = await supabase
+                .from(TABLES.NOTIFICATIONS)
+                .delete()
+                .eq('user_id', userId);
+
+            if (error) throw error;
+            return { success: true, error: null };
+        } catch (error) {
+            console.error('Error in deleteAllNotifications:', error);
+            return { success: false, error };
+        }
+    },
+
     // Get community notifications (announcements)
     async getCommunityNotifications(limitCount = 50) {
         try {
@@ -1545,14 +1741,41 @@ export const dbService = {
                 id: doc.id,
                 title: doc.title,
                 message: doc.content,
-                type: 'system',
+                type: 'community',
                 priority: 'medium',
                 createdAt: doc.created_at,
-                read: doc.read || false
+                read: false,
+                targetAudience: doc.target_audience
             }));
 
-            return { data: mappedData, error: null };
+            return { data: mappedData || [], error: null };
         } catch (error) {
+            console.error('Error in getCommunityNotifications:', error);
+            return { data: [], error };
+        }
+    },
+
+    // Add activity to user_activities table
+    async addActivity(activityData) {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.USER_ACTIVITIES)
+                .insert({
+                    user_id: activityData.userId || activityData.user_id || null,
+                    type: activityData.type,
+                    message: activityData.message,
+                    metadata: activityData.metadata || {},
+                    icon: activityData.icon || 'fa-info-circle',
+                    priority: activityData.priority || 'low',
+                    created_at: new Date().toISOString()
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('Error in addActivity:', error);
             return { data: null, error };
         }
     },
@@ -1635,7 +1858,10 @@ export const dbService = {
             // Fetch users, collectors, bins, and areas in parallel
             // Use allSettled so one failure doesn't break everything
             const results = await Promise.allSettled([
-                supabase.from(TABLES.USERS).select('id, role, status, created_at'),
+                supabase.from(TABLES.USERS)
+                    .select('id, role, status, created_at, is_deleted')
+                    .or('is_deleted.is.null,is_deleted.eq.false')
+                    .neq('status', 'hidden'),
                 supabase.from(TABLES.REGISTERED_COLLECTORS).select('id, status'),
                 supabase.from(TABLES.BINS || 'bins').select('id, updated_at'),
                 supabase.from(TABLES.AREA_SCHEDULES || 'area_schedules').select('id')
@@ -1677,7 +1903,6 @@ export const dbService = {
                 activeCollectors: collectorList.filter(c => c.status === 'active' || c.status === 'available').length ||
                     userList.filter(u => u.role === 'collector' && u.status === 'active').length,
 
-                iotUsers: binList.length,
                 onlineSensors: binList.filter(b => {
                     if (b.status === 'inactive') return false;
                     if (!b.updated_at) return false;
@@ -1692,20 +1917,83 @@ export const dbService = {
                     const diffMinutes = (now - lastUpdate) / 1000 / 60;
                     return diffMinutes > 2;
                 }).length,
-                serviceAreas: areaList,
+                serviceAreas: areaList.length,
 
                 newUsersThisMonth: userList.filter(u => {
                     if (!u.created_at) return false;
                     const created = new Date(u.created_at);
                     return created.getMonth() === currentMonth &&
                         created.getFullYear() === currentYear;
-                }).length
+                }).length,
+
+                pendingApprovalCount: userList.filter(u =>
+                    ['pending_approval', 'pending_verification'].includes((u.status || '').toLowerCase())
+                ).length
             };
+
 
             return { data: stats, error: null };
         } catch (error) {
             console.error('getSystemStats error:', error?.message || error);
             return { data: null, error };
+        }
+    },
+
+    // ── Waste Management Plans (Recent Reports) Methods ──────────────
+
+    /**
+     * Retrieves all saved waste management plans.
+     */
+    async getWasteManagementPlans() {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.WASTE_MANAGEMENT_PLANS)
+                .select('*')
+                .order('generated_at', { ascending: false });
+
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('Error fetching waste plans:', error);
+            return { data: null, error };
+        }
+    },
+
+    /**
+     * Updates an existing waste management plan.
+     */
+    async updateWasteManagementPlan(id, updates) {
+        try {
+            const { data, error } = await supabase
+                .from(TABLES.WASTE_MANAGEMENT_PLANS)
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { data, error: null };
+        } catch (error) {
+            console.error('Error updating waste plan:', error);
+            return { data: null, error };
+        }
+    },
+
+    /**
+     * Deletes a waste management plan.
+     */
+    async deleteWasteManagementPlan(id) {
+        try {
+            const { error } = await supabase
+                .from(TABLES.WASTE_MANAGEMENT_PLANS)
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            return { error: null };
+        } catch (error) {
+            console.error('Error deleting waste plan:', error);
+            return { error };
         }
     }
 
@@ -1811,7 +2099,7 @@ export const realtime = {
 
     // Subscribe to notifications
     subscribeToNotifications(callback, userId = null) {
-        const filter = userId 
+        const filter = userId
             ? { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS, filter: `user_id=eq.${userId}` }
             : { event: '*', schema: 'public', table: TABLES.NOTIFICATIONS };
 
@@ -1952,24 +2240,24 @@ export const utils = {
         // Current time in Manila
         const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
         const past = new Date(new Date(dateStr).toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
-        
+
         if (isNaN(past.getTime())) return 'N/A';
-        
+
         const diffInSeconds = Math.floor((now - past) / 1000);
 
         if (diffInSeconds < 0) return 'Just now'; // Handle slight clock skews
         if (diffInSeconds < 60) return 'Just now';
-        
+
         if (diffInSeconds < 3600) {
             const mins = Math.floor(diffInSeconds / 60);
             return `${mins}m ago`;
         }
-        
+
         if (diffInSeconds < 86400) {
             const hours = Math.floor(diffInSeconds / 3600);
             return `${hours}h ago`;
         }
-        
+
         if (diffInSeconds < 604800) {
             const days = Math.floor(diffInSeconds / 86400);
             return `${days}d ago`;
@@ -2033,5 +2321,11 @@ export const utils = {
         return 'An error occurred.';
     }
 };
+
+// Ensure it's available globally for non-module scripts (like heatmap.js)
+if (typeof window !== 'undefined') {
+    window.dbService = dbService;
+    window.__supabaseClient = supabase;
+}
 
 export default { supabase, authService, dbService, realtime, utils };

@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Registered Users - EcoSched Admin</title>
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
   <link rel="stylesheet" href="../css/main.css" />
   <link rel="stylesheet" href="../css/pages/users.css" />
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
@@ -49,6 +51,17 @@
             <option value="resident">Resident</option>
           </select>
         </div>
+        <div class="filter-group">
+          <label>Status</label>
+          <select class="filter-select" id="statusFilter">
+            <option value="">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="pending_approval">Pending Approval</option>
+            <option value="pending_verification">Pending Verification</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+
         <div class="filter-group">
           <button class="btn btn-secondary" onclick="resetFilters()">
             <i class="fas fa-undo"></i>

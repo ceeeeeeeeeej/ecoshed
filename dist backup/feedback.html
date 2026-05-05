@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resident Feedback - EcoSched Admin</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/feedback.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-comments"></i>
+                    Resident Feedback
+                </h1>
+                <p class="page-subtitle">Monitor and respond to community suggestions and reports</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary btn-sync" onclick="loadFeedbackFromFirebase()">
+                    <i class="fas fa-sync-alt"></i>
+                    Sync Data
+                </button>
+            </div>
+        </div>
+
+        <div class="metrics-summary">
+            <div class="metric-mini-card">
+                <div class="mini-icon"><i class="fas fa-inbox"></i></div>
+                <div class="mini-info">
+                    <span class="mini-label">Total Items</span>
+                    <span class="mini-value" id="feedbackCount">0</span>
+                </div>
+            </div>
+            <div class="metric-mini-card unread">
+                <div class="mini-icon"><i class="fas fa-envelope"></i></div>
+                <div class="mini-info">
+                    <span class="mini-label">Unread</span>
+                    <span class="mini-value" id="unreadFeedbackCount">0</span>
+                </div>
+            </div>
+            <div class="metric-mini-card urgent">
+                <div class="mini-icon"><i class="fas fa-exclamation-circle"></i></div>
+                <div class="mini-info">
+                    <span class="mini-label">Urgent</span>
+                    <span class="mini-value" id="urgentFeedbackCount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-container glass-effect">
+            <div class="table-header">
+                <div class="table-info">
+                    <i class="fas fa-list"></i> Feedback History
+                </div>
+                <div class="table-actions">
+                    <!-- Future search/filter can go here -->
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="feedbackTable">
+                    <thead>
+                        <tr>
+                            <th>Feedback Details</th>
+                            <th>Resident / Location</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Created At</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="feedbackTableBody">
+                        <!-- Loading state -->
+                        <tr>
+                            <td colspan="6">
+                                <div class="loading-state">
+                                    <i class="fas fa-circle-notch fa-spin"></i>
+                                    <p>Loading feedback...</p>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/feedback.js"></script>
+</body>
+</html>

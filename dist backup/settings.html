@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Settings - EcoSched Admin</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/settings.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-cog"></i>
+                    System Settings
+                </h1>
+                <p class="page-subtitle">Configure system preferences and settings</p>
+            </div>
+        </div>
+
+        <!-- Settings Navigation -->
+        <div class="settings-nav">
+            <button class="nav-item active" onclick="showSettingsSection('general')">
+                <i class="fas fa-cog"></i>
+                General
+            </button>
+            <button class="nav-item" onclick="showSettingsSection('users')">
+                <i class="fas fa-users"></i>
+                User Management
+            </button>
+            <button class="nav-item" onclick="showSettingsSection('notifications')">
+                <i class="fas fa-bell"></i>
+                Notifications
+            </button>
+            <!-- <button class="nav-item" onclick="showSettingsSection('integrations')">
+                <i class="fas fa-plug"></i>
+                Integrations
+            </button> -->
+            <!-- <button class="nav-item" onclick="showSettingsSection('security')">
+                <i class="fas fa-shield-alt"></i>
+                Security
+            </button>
+           -->
+        </div>
+
+        <!-- Settings Content -->
+        <div class="settings-content">
+            <!-- General Settings -->
+            <div id="general-settings" class="settings-section active">
+                <div class="section-header">
+                    <h2>General Settings</h2>
+                    <p>Configure basic system settings</p>
+                </div>
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="systemName">System Name</label>
+                        <input type="text" id="systemName" value="EcoSched Admin Dashboard">
+                    </div>
+                    <div class="form-group">
+                        <label for="timezone">Timezone</label>
+                        <select id="timezone">
+                            <option value="UTC-8">Pacific Time (UTC-8)</option>
+                            <option value="UTC-5">Eastern Time (UTC-5)</option>
+                            <option value="UTC+0">UTC</option>
+                            <option value="UTC+1">Central European Time (UTC+1)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="language">Language</label>
+                        <select id="language">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dateFormat">Date Format</label>
+                        <select id="dateFormat">
+                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Settings -->
+            <div id="users-settings" class="settings-section">
+                <div class="section-header">
+                    <h2>User Management</h2>
+                    <p>Configure user registration and permissions</p>
+                </div>
+                <div class="settings-form">
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" id="allowUserRegistration" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Allow User Registration</span>
+                            <span class="setting-description">Allow new users to register themselves</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Email Verification Required</span>
+                            <span class="setting-description">Require email verification for new accounts</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" id="adminApprovalRequired">
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Admin Approval Required</span>
+                            <span class="setting-description">Require admin approval for new user accounts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Settings -->
+            <div id="notifications-settings" class="settings-section">
+                <div class="section-header">
+                    <h2>Notification Settings</h2>
+                    <p>Configure notification preferences</p>
+                </div>
+                <div class="settings-form">
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Email Notifications</span>
+                            <span class="setting-description">Send notifications via email</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Push Notifications</span>
+                            <span class="setting-description">Send push notifications to browser</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">SMS Notifications</span>
+                            <span class="setting-description">Send notifications via SMS</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Integration Settings -->
+            <div id="integrations-settings" class="settings-section">
+                <div class="section-header">
+                    <h2>Integrations</h2>
+                    <p>Configure third-party integrations</p>
+                </div>
+                <div class="settings-form">
+                    <div class="integration-item">
+                        <div class="integration-info">
+                            <div class="integration-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="integration-details">
+                                <h4>Firebase</h4>
+                                <p>Database and authentication service</p>
+                            </div>
+                        </div>
+                        <div class="integration-status">
+                            <span class="status-badge connected">Connected</span>
+                            <button class="btn btn-outline btn-small"
+                                onclick="configureIntegration('firebase')">Configure</button>
+                        </div>
+                    </div>
+                    <div class="integration-item">
+                        <div class="integration-info">
+                            <div class="integration-icon">
+                                <i class="fas fa-map"></i>
+                            </div>
+                            <div class="integration-details">
+                                <h4>Google Maps</h4>
+                                <p>Route optimization and mapping</p>
+                            </div>
+                        </div>
+                        <div class="integration-status">
+                            <span class="status-badge disconnected">Not Connected</span>
+                            <button class="btn btn-outline btn-small"
+                                onclick="configureIntegration('maps')">Connect</button>
+                        </div>
+                    </div>
+                    <div class="integration-item">
+                        <div class="integration-info">
+                            <div class="integration-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="integration-details">
+                                <h4>Email Service</h4>
+                                <p>SMTP email delivery</p>
+                            </div>
+                        </div>
+                        <div class="integration-status">
+                            <span class="status-badge connected">Connected</span>
+                            <button class="btn btn-outline btn-small"
+                                onclick="configureIntegration('email')">Configure</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div id="security-settings" class="settings-section">
+                <div class="section-header">
+                    <h2>Security Settings</h2>
+                    <p>Configure security and access controls</p>
+                </div>
+                <div class="settings-form">
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Two-Factor Authentication</span>
+                            <span class="setting-description">Require 2FA for admin accounts</span>
+                        </div>
+                    </div>
+                    <div class="setting-item">
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <div class="setting-info">
+                            <span class="setting-title">Session Timeout</span>
+                            <span class="setting-description">Automatically log out inactive users</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="sessionTimeout">Session Timeout (minutes)</label>
+                        <input type="number" id="sessionTimeout" value="30" min="5" max="480">
+                    </div>
+                    <div class="form-group">
+                        <label for="passwordPolicy">Password Policy</label>
+                        <select id="passwordPolicy">
+                            <option value="basic">Basic (8+ characters)</option>
+                            <option value="medium">Medium (8+ chars, numbers)</option>
+                            <option value="strong">Strong (8+ chars, numbers, symbols)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup & Restore Settings -->
+            <div id="backup-settings" class="settings-section">
+                <div class="section-header">
+                    <h2>Backup & Restore</h2>
+                    <p>Manage data backup and restoration</p>
+                </div>
+                <div class="settings-form">
+                    <div class="backup-section">
+                        <h3>Automatic Backups</h3>
+                        <div class="setting-item">
+                            <label class="switch">
+                                <input type="checkbox" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <div class="setting-info">
+                                <span class="setting-title">Enable Automatic Backups</span>
+                                <span class="setting-description">Automatically backup data daily</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="backupTime">Backup Time</label>
+                            <input type="time" id="backupTime" value="02:00">
+                        </div>
+                        <div class="form-group">
+                            <label for="retentionDays">Retention Period (days)</label>
+                            <input type="number" id="retentionDays" value="30" min="7" max="365">
+                        </div>
+                    </div>
+                    <div class="backup-section">
+                        <h3>Manual Backup</h3>
+                        <div class="backup-actions">
+                            <button class="btn btn-primary" onclick="createBackup()">
+                                <i class="fas fa-download"></i>
+                                Create Backup
+                            </button>
+                            <button class="btn btn-outline" onclick="restoreBackup()">
+                                <i class="fas fa-upload"></i>
+                                Restore Backup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Save Button -->
+        <div class="settings-footer">
+            <button class="btn btn-primary" onclick="saveSettings()">
+                <i class="fas fa-save"></i>
+                Save All Settings
+            </button>
+        </div>
+    </div>
+
+    <script type="module" src="./js/pages/settings.js"></script>
+</body>
+
+</html>

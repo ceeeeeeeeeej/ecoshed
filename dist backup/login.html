@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSched Admin Login</title>
+    <link rel="stylesheet" href="./css/landing.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="hero">
+        <!-- Hero Background -->
+        <div class="hero-background">
+            <div class="hero-overlay"></div>
+            <div class="floating-elements">
+                <div class="floating-leaf leaf-1"></div>
+                <div class="floating-leaf leaf-2"></div>
+                <div class="floating-leaf leaf-3"></div>
+                <div class="recycling-symbol symbol-1"></div>
+                <div class="recycling-symbol symbol-2"></div>
+            </div>
+        </div>
+
+        <!-- Login Panel -->
+        <div class="hero-content">
+            <div class="glass-panel login-panel">
+                <div class="panel-header">
+                    <div class="nav-logo">
+                        <img src="./assets/image/logo/logo1.png" alt="EcoSched Logo" class="logo-image">
+                        <span class="logo-text">EcoSched</span>
+                    </div>
+                    <h1 class="panel-title">Welcome Back, Admin</h1>
+                    <p class="panel-subtitle">Sign in to access your waste management dashboard</p>
+                </div>
+
+                <form id="loginForm" class="eco-form">
+                    <div class="form-group">
+                        <label class="field-label">Email Address</label>
+                        <div class="input-field">
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="loginEmail" name="email" placeholder="admin@gmail.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="field-label">Password</label>
+                        <div class="input-field">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="loginPassword" name="password" placeholder="Enter your password"
+                                required>
+                            <button type="button" class="password-toggle" id="loginPasswordToggle">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="remember-checkbox">
+                            <input type="checkbox" id="rememberMe">
+                            <span class="checkmark"></span>
+                            <span class="checkbox-text">Remember me</span>
+                        </label>
+                        <a href="#" class="forgot-password">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="eco-button login-button">
+                        <span>Sign In</span>
+                        <div class="recycling-icon">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                    </button>
+
+                    <div class="existing-account">
+                        <p>Don't have an account? <a href="registration.html" class="eco-link">Create one here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Firebase services
+        import { authService, dbService, utils } from './config/supabase_config.js?v=2.0';
+
+        // Login-specific functionality
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log('Login page loaded');
+
+            // Check for remembered email on page load
+            loadRememberedEmail();
+
+            // Initialize login form
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                console.log('Login form found');
+
+                // Add form submission handler
+                loginForm.addEventListener('submit', handleLogin);
+
+                // Add real-time validation
+                const formFields = loginForm.querySelectorAll('input');
+                formFields.forEach(field => {
+                    field.addEventListener('blur', validateField);
+                });
+
+                // Password toggle
+                const passwordToggle = document.getElementById('loginPasswordToggle');
+                if (passwordToggle) {
+                    passwordToggle.addEventListener('click', () => togglePassword('loginPassword'));
+                }
+            } else {
+                console.error('Login form not found');
+            }
+        });
+
+        // Load remembered email if "Remember Me" was checked
+        function loadRememberedEmail() {
+            const rememberMe = localStorage.getItem('rememberMe');
+            const savedEmail = localStorage.getItem('savedEmail');
+
+            if (rememberMe === 'true' && savedEmail) {
+                const emailField = document.getElementById('loginEmail');
+                const rememberMeCheckbox = document.getElementById('rememberMe');
+
+                if (emailField && rememberMeCheckbox) {
+                    // Fill in the email
+                    emailField.value = savedEmail;
+
+                    // Check the remember me box
+                    rememberMeCheckbox.checked = true;
+
+                    // Add visual feedback with a subtle animation
+                    setTimeout(() => {
+                        emailField.parentElement.classList.add('success');
+                    }, 500);
+
+                    console.log('Auto-filled email from Remember Me');
+                }
+            }
+        }
+
+        // Handle login form submission
+        async function handleLogin(e) {
+            e.preventDefault();
+            console.log('Login form submitted');
+
+            const formData = new FormData(e.target);
+            const loginData = {
+                email: formData.get('email'),
+                password: formData.get('password')
+            };
+
+            console.log('Login data:', loginData);
+
+            // Enhanced validation
+            if (!validateLoginForm(loginData)) {
+                return;
+            }
+
+            // Show loading state
+            const submitBtn = document.querySelector('.login-button');
+            if (submitBtn) {
+                submitBtn.classList.add('loading');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Signing In...</span>';
+            }
+
+            try {
+                // Authenticate with Firebase
+                const { user, error } = await authService.signIn(loginData.email, loginData.password);
+                if (error || !user) {
+                    throw error || new Error('Invalid email or password');
+                }
+
+                // Load admin profile from Firestore
+                let userData = null;
+                if (dbService && dbService.getUserById) {
+                    console.log('🔍 DEBUG: Fetching user profile for ID:', user.id);
+                    const { data, error: profileError } = await dbService.getUserById(user.id);
+                    console.log('🔍 DEBUG: User profile data:', data);
+                    console.log('🔍 DEBUG: Profile error:', profileError);
+
+                    if (profileError || !data) {
+                        if (authService && authService.signOut) {
+                            await authService.signOut();
+                        }
+                        throw new Error('Access denied. This account is not authorized to access the admin dashboard.');
+                    }
+                    userData = data;
+                }
+
+                // Enforce status checks
+                const userStatus = (userData?.status || '').toLowerCase();
+                console.log('🔍 DEBUG: User status (raw):', userData?.status);
+                console.log('🔍 DEBUG: User status (lowercase):', userStatus);
+                console.log('🔍 DEBUG: Is pending_approval?', userStatus === 'pending_approval');
+                console.log('🔍 DEBUG: Is pending_verification?', userStatus === 'pending_verification');
+
+                if (userStatus === 'pending_approval' || userStatus === 'pending_verification') {
+                    console.log('❌ DEBUG: BLOCKING LOGIN - Status is pending!');
+                    if (authService && authService.signOut) {
+                        await authService.signOut();
+                    }
+                    throw new Error('Your account is pending admin approval. Please contact your system administrator.');
+                }
+
+                if (userStatus && userStatus !== 'active') {
+                    console.log('❌ DEBUG: BLOCKING LOGIN - Status is not active:', userStatus);
+                    if (authService && authService.signOut) {
+                        await authService.signOut();
+                    }
+                    throw new Error('Your account is not currently active. Please contact your system administrator for assistance.');
+                }
+
+                // Enforce role checks (only admin/superadmin)
+                const userRole = (userData?.role || '').toLowerCase();
+                console.log('🔍 DEBUG: User role:', userRole);
+                if (userRole !== 'admin' && userRole !== 'superadmin') {
+                    console.log('❌ DEBUG: BLOCKING LOGIN - Invalid role:', userRole);
+                    if (authService && authService.signOut) {
+                        await authService.signOut();
+                    }
+                    throw new Error('Only administrator and super administrator accounts can access the admin dashboard.');
+                }
+
+                console.log('✅ DEBUG: All checks passed! Allowing login.');
+
+                // Persist login state for dashboard/settings
+                const loginTimestamp = new Date().toISOString();
+                const profileToStore = {
+                    uid: user.id,
+                    email: user.email,
+                    fullName: userData?.fullName || `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || user.displayName || user.email || 'Admin User',
+                    role: userRole || 'admin',
+                    serviceArea: userData?.serviceArea || userData?.organization || 'Head Office',
+                    phone: userData?.phone || '',
+                    organization: userData?.organization || 'EcoSched Admin',
+                    lastLoginAt: loginTimestamp,
+                    loginTime: loginTimestamp
+                };
+                localStorage.setItem('adminLoggedIn', 'true');
+                localStorage.setItem('userData', JSON.stringify(profileToStore));
+
+                const rememberMeCheckbox = document.getElementById('rememberMe');
+                if (rememberMeCheckbox && rememberMeCheckbox.checked) {
+                    // Save remember me preference and email
+                    localStorage.setItem('rememberMe', 'true');
+                    localStorage.setItem('savedEmail', loginData.email);
+                    console.log('Remember Me enabled - email saved');
+                } else {
+                    // Clear remember me preference and saved email
+                    localStorage.removeItem('rememberMe');
+                    localStorage.removeItem('savedEmail');
+                    console.log('Remember Me disabled - email cleared');
+                }
+
+                // Show success message
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i><span>Success!</span>';
+                    submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                }
+
+                // Show success notification
+                showLoginSuccess('Login successful! Redirecting to dashboard...');
+
+                // Redirect to dashboard
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Login error:', error);
+
+                // Get user-friendly error message
+                const errorMessage = utils.getErrorMessage ? utils.getErrorMessage(error) : error.message || 'Login failed';
+
+                // Show error message
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-times"></i><span>Login Failed</span>';
+                    submitBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+
+                    // Reset button after 3 seconds
+                    setTimeout(() => {
+                        submitBtn.innerHTML = '<span>Sign In</span><div class="recycling-icon"><i class="fas fa-sign-in-alt"></i></div>';
+                        submitBtn.style.background = '';
+                        submitBtn.classList.remove('loading');
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }
+
+                // Show error notification
+                showLoginError(errorMessage);
+            }
+        }
+
+        // Validate login form
+        function validateLoginForm(loginData) {
+            let isValid = true;
+
+            // Clear previous validation states
+            clearValidationStates();
+
+            // Validate email
+            if (!loginData.email) {
+                showFieldError('loginEmail', 'Please enter your email address');
+                isValid = false;
+            } else {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(loginData.email)) {
+                    showFieldError('loginEmail', 'Please enter a valid email address');
+                    isValid = false;
+                }
+            }
+
+            // Validate password
+            if (!loginData.password) {
+                showFieldError('loginPassword', 'Please enter your password');
+                isValid = false;
+            } else if (loginData.password.length < 6) {
+                showFieldError('loginPassword', 'Password must be at least 6 characters');
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        // Show field error
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            const formGroup = field.closest('.form-group');
+
+            formGroup.classList.add('error');
+            formGroup.classList.remove('success');
+
+            // Remove existing error message
+            const existingError = formGroup.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            // Add error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            formGroup.appendChild(errorDiv);
+        }
+
+        // Clear validation states
+        function clearValidationStates() {
+            const formGroups = document.querySelectorAll('.form-group');
+            formGroups.forEach(group => {
+                group.classList.remove('error', 'success');
+                const errorMessage = group.querySelector('.error-message');
+                if (errorMessage) {
+                    errorMessage.remove();
+                }
+            });
+        }
+
+        // Validate individual field
+        function validateField(e) {
+            const field = e.target;
+            const fieldId = field.id;
+            const value = field.value.trim();
+
+            // Clear previous validation
+            const formGroup = field.closest('.form-group');
+            formGroup.classList.remove('error', 'success');
+
+            const existingError = formGroup.querySelector('.error-message');
+            if (existingError) {
+                existingError.remove();
+            }
+
+            let isValid = true;
+            let errorMessage = '';
+
+            // Field-specific validation
+            switch (fieldId) {
+                case 'loginEmail':
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (value && !emailRegex.test(value)) {
+                        isValid = false;
+                        errorMessage = 'Please enter a valid email address';
+                    }
+                    break;
+
+                case 'loginPassword':
+                    if (value && value.length < 6) {
+                        isValid = false;
+                        errorMessage = 'Password must be at least 6 characters';
+                    }
+                    break;
+            }
+
+            // Show validation result
+            if (value && isValid) {
+                formGroup.classList.add('success');
+            } else if (value && !isValid) {
+                formGroup.classList.add('error');
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message';
+                errorDiv.textContent = errorMessage;
+                formGroup.appendChild(errorDiv);
+            }
+        }
+
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            const toggle = document.getElementById(fieldId + 'Toggle');
+            const icon = toggle.querySelector('i');
+
+            if (field.type === 'password') {
+                field.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                field.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Show login success notification
+        function showLoginSuccess(message) {
+            // Create success notification
+            const notification = document.createElement('div');
+            notification.className = 'registration-notification success';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+
+        // Show login error notification
+        function showLoginError(message) {
+            // Create error notification
+            const notification = document.createElement('div');
+            notification.className = 'registration-notification error';
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>We couldn't sign you in</strong>
+                        <span style="display:block; font-size:0.9rem; margin-top:2px;">
+                            ${message || 'Please double-check your email and password, then try again.'}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            // Add to page
+            document.body.appendChild(notification);
+
+            // Show notification
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 100);
+
+            // Remove notification after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 5000);
+        }
+    </script>
+</body>
+
+</html>

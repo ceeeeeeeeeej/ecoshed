@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 // Dashboard JavaScript
 // Simplified version without Firebase dependencies
 import { supabase, TABLES, authService, dbService, realtime, utils } from '../config/supabase_config.js';
@@ -101,6 +101,9 @@ async function initializeDashboard() {
 
     // Initialize recent activity display
     setupActivityRefresh();
+
+    // Initialize general event listeners
+    setupEventListeners();
 }
 
 // Initialize navigation handlers for sidebar menu
@@ -108,29 +111,56 @@ function initializeNavigationHandlers() {
     // Set up sidebar menu navigation
     const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
 
+    // Set up mobile sidebar toggles (targeting both header and global buttons)
+    const sidebarToggles = document.querySelectorAll('.sidebar-toggle');
+    const sidebarClose = document.getElementById('sidebarClose');
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.getElementById('sidebar');
+
     if (menuItems) {
         menuItems.forEach(item => {
             item.addEventListener('click', function () {
                 const page = this.dataset.page;
+
+                // Clear the notification dot locally when clicked
+                this.classList.remove('has-notification');
+
+                // Mark current notifications for this page as acknowledged
+                if (window.currentUnreadNotifications && page) {
+                    window.acknowledgedNotifIds = window.acknowledgedNotifIds || new Set();
+                    window.currentUnreadNotifications.forEach(noti => {
+                        const type = (noti.type || '').toLowerCase();
+                        let pageTarget = null;
+                        if (type === 'new_user' || type === 'user') pageTarget = 'users';
+                        else if (type === 'special_collection' || type === 'pickup_request') pageTarget = 'special-collections';
+                        else if (type === 'feedback') pageTarget = 'feedback';
+                        else if (type === 'bin_alert' || type === 'alert' || type === 'iot_alert') pageTarget = 'notifications';
+
+                        // If it belongs to this page, mark it acknowledged so it won't trigger the dot again
+                        if (pageTarget === page || page === 'notifications') {
+                            window.acknowledgedNotifIds.add(noti.id);
+                        }
+                    });
+                }
+
                 if (page) {
                     navigateToPage(page);
+                    // Auto-close sidebar on mobile after navigation
+                    if (window.innerWidth <= 768) {
+                        sidebar?.classList.remove('show');
+                        sidebarOverlay?.classList.remove('show');
+                    }
                 }
             });
         });
     }
 
-    // Set up mobile sidebar toggles
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebarClose = document.getElementById('sidebarClose');
-    const sidebarOverlay = document.getElementById('sidebarOverlay');
-    const sidebar = document.getElementById('sidebar');
-
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', () => {
+    sidebarToggles.forEach(toggle => {
+        toggle.addEventListener('click', () => {
             sidebar?.classList.add('show');
             sidebarOverlay?.classList.add('show');
         });
-    }
+    });
 
     if (sidebarClose) {
         sidebarClose.addEventListener('click', () => {
@@ -170,15 +200,15 @@ function initializeNavigationHandlers() {
     // Notification dropdown toggle
     const notificationBtn = document.getElementById('notificationBtn');
     const notificationDropdown = document.getElementById('notificationDropdown');
-    if (notificationBtn && notificationDropdown) {
+    if (notificationBtn) {
         notificationBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            notificationDropdown.classList.toggle('show');
+            navigateToPage('notifications');
             // Close user menu if open
             if (userMenuDropdown) userMenuDropdown.classList.remove('show');
+            if (notificationDropdown) notificationDropdown.classList.remove('show');
         });
     }
-
 
     const markAllReadBtn = document.getElementById('markAllRead');
     if (markAllReadBtn) {
@@ -254,8 +284,6 @@ function initializeRealtimeDashboard() {
             });
         }
 
-
-
         // Realtime recent activity from user_activities
         if (realtime && realtime.subscribeToActivities) {
             activitiesUnsubscribe = realtime.subscribeToActivities((activities) => {
@@ -279,7 +307,6 @@ function initializeRealtimeDashboard() {
 
         // Realtime live route monitoring from waste_routes
         // Routes feature removed
-
 
         // Realtime notifications badge (header bell) from community + resident feedback
         if (realtime && (realtime.subscribeToCommunityNotifications || realtime.subscribeToResidentFeedback)) {
@@ -370,7 +397,7 @@ function initializeRealtimeDashboard() {
                     // Update dashboard stats
                     const unreadFeedback = feedbackItems.filter(f => !f.read || (f.status || 'new').toLowerCase() === 'new').length;
                     updateStatsDisplay({ feedbackCount: unreadFeedback });
-                    
+
                     // Recalculate total notifications (New Updates)
                     refreshTotalNotifications();
                 });
@@ -378,7 +405,7 @@ function initializeRealtimeDashboard() {
 
             if (realtime.subscribeToSpecialCollections) {
                 realtime.subscribeToSpecialCollections((items, payload) => {
-                    const activeSpecials = items.filter(s => 
+                    const activeSpecials = items.filter(s =>
                         !['completed', 'cancelled'].includes((s.status || '').toLowerCase())
                     ).length;
                     updateStatsDisplay({ specialCount: activeSpecials });
@@ -396,10 +423,10 @@ function initializeRealtimeDashboard() {
 
                     // Update dashboard count for bin alerts (specialCount now handled above)
                     const unreadAlerts = genericItems.filter(n => n.type === 'bin_alert' && !n.read).length;
-                    updateStatsDisplay({ 
+                    updateStatsDisplay({
                         collectorCount: unreadAlerts
                     });
-                    
+
                     refreshTotalNotifications();
                 });
             }
@@ -476,46 +503,9 @@ function initializeRealtimeDashboard() {
     }
 }
 
-// Set up event listeners
+// Set up event listeners (only for items NOT already bound in initializeNavigationHandlers)
 function setupEventListeners() {
-    // Sidebar navigation
-    const menuItems = document.querySelectorAll('.menu-item');
-    menuItems.forEach(item => {
-        item.addEventListener('click', function () {
-            const page = this.dataset.page;
-            navigateToPage(page);
-        });
-    });
-
-    // Sidebar toggle for mobile
-    const sidebarToggle = document.querySelector('.sidebar-toggle');
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', toggleSidebar);
-    }
-
-    // Sidebar overlay click to close
-    const sidebarOverlay = document.querySelector('.sidebar-overlay');
-    if (sidebarOverlay) {
-        sidebarOverlay.addEventListener('click', closeSidebar);
-    }
-
-    // Sidebar close button
-    const sidebarClose = document.querySelector('.sidebar-close');
-    if (sidebarClose) {
-        sidebarClose.addEventListener('click', closeSidebar);
-    }
-
-    // Close menus on outside click
-    document.addEventListener('click', (e) => {
-        handleUserMenuOutsideClick(e);
-    });
-
-    // User menu
-    const userBtn = document.getElementById('userMenuButton');
-    if (userBtn) {
-        userBtn.addEventListener('click', toggleUserMenu);
-    }
-
+    // Manage Profile button (navigates to settings)
     const manageProfileBtn = document.getElementById('manageProfileBtn');
     if (manageProfileBtn) {
         manageProfileBtn.addEventListener('click', () => {
@@ -523,16 +513,6 @@ function setupEventListeners() {
             closeUserMenu();
         });
     }
-
-    const userLogoutBtn = document.getElementById('userLogoutBtn');
-    if (userLogoutBtn) {
-        userLogoutBtn.addEventListener('click', () => {
-            closeUserMenu();
-            logout();
-        });
-    }
-
-    document.addEventListener('click', handleUserMenuOutsideClick);
 }
 async function loadAllNotifications() {
     try {
@@ -559,7 +539,7 @@ async function loadAdminProfile() {
     adminProfile = getStoredAdminProfile();
 
     // If we only have the placeholder profile, try to enrich it from Firebase
-    const isPlaceholder = !adminProfile || adminProfile.fullName === 'Admin User';
+    const isPlaceholder = !adminProfile || adminProfile.fullName === 'Admin User' || adminProfile.fullName === 'Administrator';
     if (isPlaceholder) {
         try {
             if (authService && authService.getCurrentUser && dbService && dbService.getUserById) {
@@ -568,7 +548,7 @@ async function loadAdminProfile() {
                     const { data, error } = await dbService.getUserById(currentUser.id);
                     if (!error && data) {
                         const fullName = data.fullName || `${data.firstName || ''} ${data.lastName || ''}`.trim() ||
-                            currentUser.displayName || currentUser.email || 'Admin User';
+                            currentUser.displayName || currentUser.email || 'Administrator';
 
                         const loginTimestamp = new Date().toISOString();
                         const profileToStore = {
@@ -613,8 +593,8 @@ function getStoredAdminProfile() {
             const id = parsed.uid || parsed.id || parsed.userId || null;
             return {
                 id: id ? String(id).toLowerCase() : null,
-                fullName: parsed.fullName || parsed.name || parsed.displayName || parsed.email || 'Admin User',
-                role: parsed.role || 'System Administrator',
+                fullName: parsed.fullName || parsed.name || parsed.displayName || parsed.email || 'Administrator',
+                role: parsed.role || 'Platform Administrator',
                 email: parsed.email || 'admin@ecosched.com',
                 serviceArea: parsed.serviceArea || 'Head Office',
                 lastLoginAt: parsed.lastLoginAt || parsed.loginTime || new Date().toISOString()
@@ -625,8 +605,8 @@ function getStoredAdminProfile() {
     }
 
     return {
-        fullName: 'Admin User',
-        role: 'System Administrator',
+        fullName: 'Administrator',
+        role: 'Platform Administrator',
         email: 'admin@ecosched.com',
         serviceArea: 'Head Office',
         lastLoginAt: new Date().toISOString()
@@ -646,7 +626,7 @@ function updateUserInterface(profile) {
     const dropdownLastLogin = document.getElementById('userDropdownLastLogin');
     const avatarLarge = document.getElementById('userMenuAvatarLarge');
 
-    const displayName = profile.fullName || 'Admin User';
+    const displayName = profile.fullName || 'Administrator';
     const roleLabel = formatRoleLabel(profile.role);
     const formattedLastLogin = formatLastLogin(profile.lastLoginAt);
 
@@ -670,7 +650,11 @@ function updateUserInterface(profile) {
 }
 
 function formatRoleLabel(role) {
-    if (!role) return 'System Administrator';
+    if (!role) return 'Platform Administrator';
+    const normalizedRole = role.toString().trim().toLowerCase();
+    if (normalizedRole === 'admin' || normalizedRole === 'administrator' || normalizedRole === 'system administrator') {
+        return 'Platform Administrator';
+    }
     return role
         .toString()
         .replace(/[_\-]/g, ' ')
@@ -720,8 +704,8 @@ function navigateToPage(page) {
     const pageTitle = document.querySelector('.page-title');
     if (pageTitle) {
         const titles = {
-            'dashboard': 'Dashboard',
-            'users': 'User Management',
+            'dashboard': 'Operations Overview',
+            'users': 'Registered User Management',
 
             'bins': 'Sensor Monitoring',
             'bin-locations': 'Bin Locations Map',
@@ -730,19 +714,22 @@ function navigateToPage(page) {
             'special-collections': 'Special Collections',
             'analytics': 'Analytics & Reports',
             'notifications': 'Notification Center',
-            'feedback': 'Resident Feedback',
-            'settings': 'System Settings'
+            'feedback': 'Resident Feedback'
         };
-        pageTitle.textContent = titles[page] || 'Dashboard';
+        pageTitle.textContent = titles[page] || 'Operations Overview';
     }
 
     // Show/hide content based on page
     const dashboardPage = document.getElementById('dashboard-page');
     const pageContent = document.getElementById('page-content');
     const pageFrame = document.getElementById('pageFrame');
+    const contentWrapper = document.querySelector('.content');
 
     if (page === 'dashboard') {
         // Show dashboard content
+        if (contentWrapper) {
+            contentWrapper.style.display = 'block';
+        }
         if (dashboardPage) {
             dashboardPage.style.display = 'block';
         }
@@ -750,12 +737,16 @@ function navigateToPage(page) {
             pageContent.style.display = 'none';
         }
     } else {
-        // Hide dashboard content and show iframe
+        // Hide dashboard content wrapper entirely and show iframe
+        if (contentWrapper) {
+            contentWrapper.style.display = 'none';
+        }
         if (dashboardPage) {
             dashboardPage.style.display = 'none';
         }
         if (pageContent) {
-            pageContent.style.display = 'block';
+            pageContent.style.display = 'flex';
+            pageContent.style.flexDirection = 'column';
         }
 
         // Load the specific page in iframe
@@ -768,8 +759,7 @@ function navigateToPage(page) {
             'special-collections': 'special-collections.html',
             'analytics': 'analytics.html',
             'feedback': 'feedback.html',
-            'notifications': 'notifications.html',
-            'settings': 'settings.html'
+            'notifications': 'notifications.html'
         };
 
         if (pageUrls[page] && pageFrame) {
@@ -842,7 +832,7 @@ async function loadDashboardData() {
             if (dbService && dbService.getSpecialCollections) {
                 const { data: specialData } = await dbService.getSpecialCollections();
                 if (specialData) {
-                    actualSpecialCount = specialData.filter(s => 
+                    actualSpecialCount = specialData.filter(s =>
                         !['completed', 'cancelled'].includes((s.status || '').toLowerCase())
                     ).length;
                 }
@@ -854,10 +844,10 @@ async function loadDashboardData() {
                     stats.feedbackCount = actualFeedbackCount; // Use actual feedback table
                     stats.specialCount = actualSpecialCount; // Use actual special table
                     stats.collectorCount = notifications.filter(n => n.type === 'bin_alert' && !n.read).length;
-                    
+
                     // Total Notifications = Feedback + Special + Alerts
                     stats.totalNotifications = stats.feedbackCount + stats.specialCount + stats.collectorCount;
-                    
+
                     // Correct Today's count logic
                     const todayStr = new Date().toDateString();
                     stats.todayNotifs = notifications.filter(n => {
@@ -921,6 +911,14 @@ function updateStatsDisplay(stats) {
             statElements[key].textContent = stats[key];
         }
     });
+
+    // Handle Pending Approvals Alert
+    const pendingAlert = document.getElementById('pendingApprovalsAlert');
+    const pendingCount = document.getElementById('pendingUsersCount');
+    if (pendingAlert && pendingCount && stats.pendingApprovalCount !== undefined) {
+        pendingCount.textContent = stats.pendingApprovalCount;
+        pendingAlert.style.display = stats.pendingApprovalCount > 0 ? 'block' : 'none';
+    }
 }
 
 // Recalculate and update the total "New Updates" count (sum of all notification sub-types)
@@ -929,13 +927,13 @@ function refreshTotalNotifications() {
     const specialEl = document.getElementById('specialCount');
     const collectorEl = document.getElementById('collectorCount');
     const totalEl = document.getElementById('totalNotifications');
-    
+
     if (!totalEl) return;
-    
+
     const feedback = parseInt(feedbackEl?.textContent || '0');
     const special = parseInt(specialEl?.textContent || '0');
     const collector = parseInt(collectorEl?.textContent || '0');
-    
+
     totalEl.textContent = feedback + special + collector;
 }
 
@@ -1148,7 +1146,7 @@ function toggleSidebar() {
     const overlay = document.querySelector('.sidebar-overlay');
 
     if (sidebar) {
-        sidebar.classList.toggle('open');
+        sidebar.classList.toggle('show');
 
         if (overlay) {
             overlay.classList.toggle('show');
@@ -1162,7 +1160,7 @@ function closeSidebar() {
     const overlay = document.querySelector('.sidebar-overlay');
 
     if (sidebar) {
-        sidebar.classList.remove('open');
+        sidebar.classList.remove('show');
     }
 
     if (overlay) {
@@ -1189,62 +1187,115 @@ async function initializeNotifications() {
 
     // Subscribe to real-time updates
     if (realtime && realtime.subscribeToNotifications && !notificationsUnsubscribe) {
-        notificationsUnsubscribe = realtime.subscribeToNotifications(async (items) => {
-            console.log('🔔 Notification update received:', items);
-            updateNotificationUI(items);
-            updateSidebarDots(items);
-            // Also update the badge count directly from DB for accuracy
-            await updateBadge();
-        }, adminProfile?.id);
+        // Disabled to prevent DUPLICATE notification receives.
+        // Handled in setupRealtimeUpdates() genericItems subscription instead.
+
     }
-    
+
     // Initial badge update
     await updateBadge();
 }
 
 // Expose updateBadge globally for iframes
-window.updateBadge = async function() {
+window.updateBadge = async function (providedNotifications = null) {
     try {
-        const adminId = adminProfile?.id || getStoredAdminProfile()?.id;
-        if (!adminId) {
-            console.warn('⚠️ No admin ID available for badge update');
-            return;
-        }
+        let notifications = providedNotifications;
+        let unreadCount = 0;
 
-        if (dbService && dbService.getNotificationCounts) {
-            const { unread } = await dbService.getNotificationCounts(adminId);
-            const badge = document.getElementById('notificationBadge');
-            if (badge) {
-                badge.textContent = unread;
-                badge.style.display = unread > 0 ? 'block' : 'none';
+        if (!notifications) {
+            const adminId = adminProfile?.id || getStoredAdminProfile()?.id;
+            if (!adminId) {
+                console.warn('⚠️ No admin ID available for badge update');
+                return;
+            }
+
+            if (dbService && dbService.getNotifications) {
+                const { data, error } = await dbService.getNotifications(100, adminId);
+                if (error) throw error;
+                notifications = data;
             }
         }
+
+        if (notifications) {
+            unreadCount = notifications.filter(n => !n.read).length;
+        }
+
+        // 1. Update Top Bar Bell Badge
+        const badge = document.getElementById('notificationBadge');
+        if (badge) {
+            badge.textContent = unreadCount;
+            badge.style.display = unreadCount > 0 ? 'block' : 'none';
+        }
+
+        // 2. Update Dashboard Stats Cards (if on Dashboard page)
+        const feedbackEl = document.getElementById('feedbackCount');
+        const specialEl = document.getElementById('specialCount');
+        const collectorEl = document.getElementById('collectorCount');
+        const totalEl = document.getElementById('totalNotifications');
+        const todayEl = document.getElementById('todayCount');
+
+        // If any dashboard stat elements exist, update them
+        if (feedbackEl || specialEl || collectorEl || totalEl || todayEl) {
+            console.log('📈 Refreshing dashboard stat cards...');
+
+            // Fetch specialized counts if needed, but for simplicity we can filter loaded notifications
+            // Note: The main dashboard loadDashboardData does more thorough checks (e.g. checking status tables)
+            // but for a quick iframe-driven refresh, filtering notifications is faster.
+
+            const feedbackUnread = notifications.filter(n => n.type === 'feedback' && !n.read).length;
+            const specialUnread = notifications.filter(n => (n.type === 'special_collection' || n.type === 'pickup_request') && !n.read).length;
+            const collectorUnread = notifications.filter(n => (n.type === 'bin_alert' || n.type === 'alert') && !n.read).length;
+
+            if (feedbackEl) feedbackEl.textContent = feedbackUnread;
+            if (specialEl) specialEl.textContent = specialUnread;
+            if (collectorEl) collectorEl.textContent = collectorUnread;
+            if (totalEl) totalEl.textContent = feedbackUnread + specialUnread + collectorUnread;
+
+            // Update today's count
+            const todayStr = new Date().toDateString();
+            const todayCount = notifications.filter(n => {
+                const ts = n.createdAt || n.timestamp;
+                if (!ts) return false;
+                return new Date(ts).toDateString() === todayStr;
+            }).length;
+            if (todayEl) todayEl.textContent = todayCount;
+        }
     } catch (error) {
-        console.error('Error updating badge:', error);
+        console.error('Error updating badge and stats:', error);
     }
 };
 
 const updateBadge = window.updateBadge;
 
-async function initializeSidebarNotifications() {
-    console.log('📊 Initializing sidebar notifications...');
+window.updateSidebarNotifications = async function (providedNotifications = null) {
+    console.log('📊 Updating sidebar notifications...');
     try {
+        if (providedNotifications) {
+            updateSidebarDots(providedNotifications);
+            return;
+        }
+
+        const adminId = adminProfile?.id || getStoredAdminProfile()?.id;
         if (dbService && dbService.getNotifications) {
-            const { data, error } = await dbService.getNotifications(100, adminProfile?.id);
+            const { data, error } = await dbService.getNotifications(100, adminId);
             if (!error && data) {
                 updateSidebarDots(data);
             }
         }
     } catch (error) {
-        console.error('Error initializing sidebar dots:', error);
+        console.error('Error updating sidebar dots:', error);
     }
-}
+};
+
+const initializeSidebarNotifications = window.updateSidebarNotifications;
 
 function updateSidebarDots(notifications) {
     if (!notifications) return;
 
-    const unreadNotifications = notifications.filter(n => !n.read);
-    
+    // Save globally so the click handler can access them
+    window.currentUnreadNotifications = notifications.filter(n => !n.read);
+    const unreadNotifications = window.currentUnreadNotifications;
+
     // Select sidebar menu items
     const menuItems = {
         'users': document.querySelector('.menu-item[data-page="users"]'),
@@ -1266,29 +1317,40 @@ function updateSidebarDots(notifications) {
         }
     });
 
+    let hasUnacknowledgedGeneral = false;
+
     // Apply dots based on unread notification types
     unreadNotifications.forEach(noti => {
-        const type = noti.type;
-        if (type === 'new_user' && menuItems['users']) {
+        // Skip if this notification was already present when the user clicked the corresponding tab
+        if (window.acknowledgedNotifIds && window.acknowledgedNotifIds.has(noti.id)) {
+            return;
+        }
+
+        hasUnacknowledgedGeneral = true;
+
+        const type = (noti.type || '').toLowerCase();
+        if ((type === 'new_user' || type === 'user') && menuItems['users']) {
             menuItems['users'].classList.add('has-notification');
-        } else if (type === 'special_collection' && menuItems['special-collections']) {
+        } else if ((type === 'special_collection' || type === 'pickup_request') && menuItems['special-collections']) {
             menuItems['special-collections'].classList.add('has-notification');
-        } else if (type === 'feedback' && menuItems['feedback']) {
+        } else if ((type === 'feedback') && menuItems['feedback']) {
             menuItems['feedback'].classList.add('has-notification');
-        } else if (type === 'bin_alert' || type === 'alert') {
+        } else if (type === 'bin_alert' || type === 'alert' || type === 'iot_alert') {
             // General notifications for bin alerts
             if (menuItems['notifications']) {
                 menuItems['notifications'].classList.add('has-notification');
             }
+            // Also show on bins monitoring tab if applicable
+            const binsMenu = document.querySelector('.menu-item[data-page="bins"]');
+            if (binsMenu) binsMenu.classList.add('has-notification');
         }
     });
 
-    // General notifications dot (if any unread exists at all)
-    if (unreadNotifications.length > 0 && menuItems['notifications']) {
+    // General notifications dot (if any unacknowledged unread exists at all)
+    if (hasUnacknowledgedGeneral && menuItems['notifications']) {
         menuItems['notifications'].classList.add('has-notification');
     }
 }
-
 
 function applyDashboardSearchFilter(term) {
     const normalized = (term || '').toLowerCase().trim();
@@ -1355,11 +1417,9 @@ function handleUserMenuOutsideClick(event) {
 
 // "View All" button on Recent Activity card
 function loadMoreActivities() {
-    // Navigate to the Analytics & Reports page where more detailed
-    // activity and performance views can be added.
-    navigateToPage('analytics');
+    // Navigate to the Notifications page
+    navigateToPage('notifications');
 }
-
 
 // "View Map" button on Live Route Monitoring card
 function openRouteMap() {
@@ -1403,7 +1463,7 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.innerHTML = `
-        <div class="notification-content">
+        <div class="notification-content" style="cursor: pointer;" onclick="navigateToPage('notifications'); this.parentElement.remove();">
             <i class="fas fa-${getNotificationIcon(type)}"></i>
             <span>${message}</span>
         </div>
@@ -1471,7 +1531,7 @@ notificationStyles.textContent = `
             opacity: 1;
         }
     }
-    
+
     @keyframes slideOut {
         from {
             transform: translateX(0);
@@ -1482,13 +1542,13 @@ notificationStyles.textContent = `
             opacity: 0;
         }
     }
-    
+
     .notification-content {
         display: flex;
         align-items: center;
         gap: 8px;
     }
-    
+
     .page-content {
         height: calc(100vh - 80px);
         overflow: hidden;
@@ -1496,81 +1556,31 @@ notificationStyles.textContent = `
 `;
 document.head.appendChild(notificationStyles);
 
-/**
- * Triggers a push notification to collectors in the bin's barangay
- * when a bin is detected as full (>= 60%).
- */
-async function triggerBinFullNotification(bin) {
-    const rawAddress = bin.address || '';
-    // Extract "Victoria" from "Barangay Victoria"
-    const barangay = rawAddress.replace(/Barangay\s+/i, '').trim();
+window.triggerBinFullNotification = async function (bin) {
+    const binId = bin.bin_id || 'Unknown Bin';
+    const location = bin.address || 'Unknown Location';
 
-    if (!barangay || barangay.toLowerCase() === 'no location' || barangay === '') {
-        console.warn(`⚠️ [Bin Alert] Skipping notification for ${bin.bin_id}: No valid barangay address.`);
-        return;
+    console.log(`🚨 [Bin Alert] Triggering UI notification and synchronizing for ${binId}`);
+
+    // 1. Show local admin notification
+    showNotification(`Attention: Bin ${binId} at ${location} is FULL!`, 'warning');
+
+    // 2. Persist to database so Collector App sees it
+    if (dbService && dbService.createCollectorNotification) {
+        await dbService.createCollectorNotification(bin);
     }
 
-    console.log(`🚀 [Bin Alert] Finding collectors in ${barangay} for bin ${bin.bin_id}`);
-
+    // Play a subtle alert sound if desired
     try {
-        const SUPABASE_URL = 'https://bfqktqtsjchbmopafgzf.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_ucEKoeLHhbxBVtzDABvVIg_eKIhIQ31';
-
-        // 1. Resolve collectors for this barangay locally in the dashboard
-        const { data: collectors, error: userError } = await supabase
-            .from(TABLES.USERS)
-            .select('id')
-            .eq('barangay', barangay)
-            .eq('role', 'collector');
-
-        if (userError || !collectors || collectors.length === 0) {
-            console.warn(`⚠️ [Bin Alert] No collectors found in database for barangay: ${barangay}`);
-            if (userError) console.error('Database error:', userError);
-            return;
-        }
-
-        console.log(`📍 [Bin Alert] Found ${collectors.length} collector(s) to notify.`);
-
-        for (const collector of collectors) {
-            // 2. Create persistent record in user_notifications (for the app's alert list)
-            supabase.from(TABLES.NOTIFICATIONS).insert({
-                user_id: collector.id,
-                barangay: barangay,
-                title: '🚨 Bin Full Alert',
-                message: `In ${barangay}, bin ${bin.bin_id} is full! Please collect waste to prevent overflow.`,
-                type: 'alert',
-                is_read: false,
-                created_at: new Date().toISOString()
-            }).then(({ error }) => {
-                if (error) console.error(`❌ [Bin Alert] DB insert failed for ${collector.id}:`, error);
-                else console.log(`✅ [Bin Alert] DB record created for ${collector.id}`);
-            });
-
-            // 3. Send Push via Edge Function using resident_id (compatibility mode)
-            fetch(`${SUPABASE_URL}/functions/v1/send-push`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                },
-                body: JSON.stringify({
-                    resident_id: collector.id, // Mandatory key for the Edge Function lookup
-                    title: '🚨 Bin Full Alert',
-                    body: `In ${barangay}, bin ${bin.bin_id} is full! Please collect waste to prevent overflow.`,
-                }),
-            }).then(async (res) => {
-                const resData = await res.json();
-                console.log(`📲 [Bin Alert] Push sent to ${collector.id}:`, resData);
-            }).catch(e => console.error(`💥 [Bin Alert] Push failed for ${collector.id}:`, e));
-        }
-
-        if (typeof showNotification === 'function') {
-            showNotification(`Notifying ${collectors.length} collectors in ${barangay} about ${bin.bin_id}`, 'info');
-        }
-    } catch (err) {
-        console.error(`💥 [Bin Alert] Critical error in notification flow:`, err);
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(e => console.log('Audio play blocked by browser'));
+    } catch (e) {
+        // Ignore audio errors
     }
-}
+};
+
+const triggerBinFullNotification = window.triggerBinFullNotification;
 
 function updateBinMonitoringDisplay(bins) {
     const binList = document.getElementById('liveBinList');
@@ -1594,7 +1604,7 @@ function updateBinMonitoringDisplay(bins) {
         if (bin.updated_at) {
             const diffSeconds =
                 (now - new Date(bin.updated_at).getTime()) / 1000;
-            
+
             // Allow up to 120 seconds of delay between heartbeats
             if (diffSeconds <= 120) {
                 sensorStatus = "online";
@@ -1651,7 +1661,7 @@ function updateBinMonitoringDisplay(bins) {
             statusColor = "#6b7280";
         } else {
             const isFull = (bin.bin_status || '').toLowerCase() === 'full';
-            
+
             statusText = isFull ? "Full" : "Normal";
             statusBg = isFull ? "#fee2e2" : "#d1fae5";
             statusColor = isFull ? "#991b1b" : "#065f46";
@@ -1667,30 +1677,26 @@ function updateBinMonitoringDisplay(bins) {
                    </span>`;
 
         return `
-            <div class="bin-item">
-                <div class="bin-header">
-                    <div class="bin-id">
-                        <i class="fas fa-trash-alt" style="color:#4b5563;"></i>
-                        <span>${bin.bin_id}</span>
+            <div class="bin-item" onclick="openBinModalById('${bin.bin_id}')">
+                <div class="bin-visualization-container">
+
+                    <div class="bin-header">
+                        <div class="bin-id">
+                            <i class="fas fa-trash-alt"></i>
+                            <span>${bin.bin_id}</span>
+                        </div>
+                        <div class="bin-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            ${bin.address || 'No location'}
+                        </div>
                     </div>
-                    ${onlineIndicator}
                 </div>
 
-                <div class="bin-location">
-                    <i class="fas fa-map-marker-alt" style="font-size:10px;margin-right:4px;"></i>
-                    ${bin.address || 'No location'}
-                </div>
-
-                <div style="margin-top:10px;">
-                    <span style="
-                        display:inline-block;
-                        padding:6px 14px;
-                        border-radius:20px;
-                        font-size:12px;
-                        font-weight:600;
-                        background:${statusBg};
-                        color:${statusColor};
-                    ">
+                <div class="bin-status-container">
+                    <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px;">
+                        ${onlineIndicator}
+                    </div>
+                    <span class="status-badge" style="background:${statusBg}; color:${statusColor};">
                         ${statusText}
                     </span>
                 </div>
@@ -1699,38 +1705,47 @@ function updateBinMonitoringDisplay(bins) {
     }).join('');
 }
 function openBinModal(bin) {
+    if (!bin) return;
 
-    document.getElementById('tel-distance').textContent =
-        `${bin.distance || 0} cm`;
+    // Use querySelector or check existence to avoid ReferenceError
+    const telDistance = document.getElementById('tel-distance');
+    if (telDistance) telDistance.textContent = `${bin.distance || 0} cm`;
 
-    document.getElementById('tel-fill').textContent =
-        `${bin.fill_level || 0} %`;
+    const telFill = document.getElementById('tel-fill');
+    if (telFill) telFill.textContent = bin.fill_level || 0;
 
-    document.getElementById('tel-gps-status').textContent =
-        bin.gps_status || 'Searching...';
+    const telGpsStatus = document.getElementById('tel-gps-status');
+    if (telGpsStatus) telGpsStatus.textContent = bin.gps_status || 'Searching...';
 
-    document.getElementById('tel-gps-sentences').textContent =
-        bin.gps_sentences || 0;
+    const telGpsSentences = document.getElementById('tel-gps-sentences');
+    if (telGpsSentences) telGpsSentences.textContent = bin.gps_sentences || 0;
 
-    document.getElementById('tel-gps-processed').textContent =
-        bin.gps_processed || 0;
+    const telGpsProcessed = document.getElementById('tel-gps-processed');
+    if (telGpsProcessed) telGpsProcessed.textContent = bin.gps_processed || 0;
 
     const errorContainer = document.getElementById('tel-gps-error-container');
     const errorText = document.getElementById('tel-gps-error');
 
-    if (bin.gps_error) {
-        errorContainer.style.display = 'block';
-        errorText.textContent = bin.gps_error;
-    } else {
-        errorContainer.style.display = 'none';
+    if (errorContainer && errorText) {
+        if (bin.gps_error) {
+            errorContainer.style.display = 'block';
+            errorText.textContent = bin.gps_error;
+        } else {
+            errorContainer.style.display = 'none';
+        }
     }
 
-    document.getElementById('tel-updated').textContent =
-        bin.updated_at
+    const telUpdated = document.getElementById('tel-updated');
+    if (telUpdated) {
+        telUpdated.textContent = bin.updated_at
             ? new Date(bin.updated_at).toLocaleString()
             : 'Never';
+    }
 
-    modal.classList.add('show');
+    const modal = document.getElementById('telemetryModal');
+    if (modal) {
+        modal.classList.add('show');
+    }
 }
 
 supabase
@@ -1744,7 +1759,8 @@ supabase
     )
     .subscribe();
 function closeTelemetryModal() {
-    modal.classList.remove('show');
+    const modal = document.getElementById('telemetryModal');
+    if (modal) modal.classList.remove('show');
 }
 async function loadBins() {
     const { data, error } = await supabase
@@ -1787,7 +1803,7 @@ async function markAllNotificationsAsRead() {
             .eq('is_read', false);
 
         if (error) throw error;
-        
+
         // Refresh UI
         if (typeof updateBadge === 'function') await updateBadge();
         showNotification('All notifications marked as read', 'success');
@@ -1822,11 +1838,6 @@ function updateNotificationUI(notifications) {
         `).join('');
 }
 
-/**
- * Refresh the total notification count (All Updates)
- * Calculates the sum of feedback, special collections, and bin alerts
- */
-
 // Export functions for global access
 window.navigateToPage = navigateToPage;
 window.logout = logout;
@@ -1835,6 +1846,10 @@ window.loadMoreActivities = loadMoreActivities;
 window.refreshSystemStatus = refreshSystemStatus;
 window.openRouteMap = openRouteMap;
 window.closeTelemetryModal = closeTelemetryModal;
+window.openBinModalById = (binId) => {
+    const bin = currentBins.find(b => b.bin_id === binId);
+    if (bin) openBinModal(bin);
+};
 setInterval(() => {
     loadBins();
 }, 2000);            // run once when page loads

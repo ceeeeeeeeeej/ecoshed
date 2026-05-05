@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Special Collections - EcoSched Admin</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/main.css" />
+  <link rel="stylesheet" href="./css/dashboard.css" />
+  <link rel="stylesheet" href="./css/pages/special-collections.css" />
+</head>
+
+<body>
+  <div class="page-container">
+    <!-- Main Content -->
+    <main class="main-content" style="margin-left: 0; padding: 0; width: 100%">
+      <!-- Filter Tabs -->
+      <div class="tabs-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-status="all">
+            All Requests
+            <span class="tab-badge" id="count-all">0</span>
+          </button>
+          <button class="tab-btn" data-status="pending">
+            Needs Approval
+            <span class="tab-badge" id="count-pending">0</span>
+          </button>
+          <button class="tab-btn" data-status="approved">
+            Approved
+            <span class="tab-badge" id="count-approved">0</span>
+          </button>
+          <button class="tab-btn" data-status="scheduled">
+            Scheduled
+            <span class="tab-badge info" id="count-scheduled">0</span>
+          </button>
+          <button class="tab-btn" data-status="completed">
+            Completed
+            <span class="tab-badge" id="count-completed">0</span>
+          </button>
+          <button class="tab-btn" data-status="cancelled">
+            Cancelled
+            <span class="tab-badge" id="count-cancelled">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Collections List -->
+      <div class="content-section">
+        <div class="card">
+          <div class="card-header">
+            <div class="search-box">
+              <i class="fas fa-search"></i>
+              <input type="text" id="searchInput" placeholder="Search by resident name or location..." />
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="collectionsContainer" class="collections-grid">
+              <!-- Collections will be loaded here -->
+            </div>
+            <div id="emptyState" class="empty-state" style="display: none">
+              <i class="fas fa-inbox"></i>
+              <p>No special collections found</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Verify Payment Modal -->
+  <div id="verifyPaymentModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Verify Office Payment</h3>
+        <button class="close-btn" onclick="closeVerifyPaymentModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          Enter the amount received at the office to verify this request.
+        </p>
+        <div class="form-group">
+          <label>Resident Name</label>
+          <input type="text" id="modal-residentName" readonly />
+        </div>
+        <div class="form-group">
+          <label>Waste Type</label>
+          <input type="text" id="modal-wasteType" readonly />
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="text" id="modal-quantity" readonly />
+        </div>
+        <div class="form-group">
+          <label>Official Receipt / Reference</label>
+          <div style="display: flex; gap: 8px">
+            <input type="text" id="modal-paymentReference" placeholder="Enter OR number or reference" style="flex: 1" />
+            <button type="button" class="btn btn-secondary" onclick="generateReference()"
+              title="Generate auto-reference">
+              <i class="fas fa-magic"></i>
+            </button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Payment Amount <span class="required">*</span></label>
+          <input type="number" id="modal-paymentAmount" placeholder="Enter amount received (e.g., 500)" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeVerifyPaymentModal()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmVerifyPayment()">
+          Confirm Payment
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schedule Collection Modal -->
+  <div id="scheduleCollectionModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Schedule Collection</h3>
+        <button class="close-btn" onclick="closeScheduleModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Resident Name</label>
+          <input type="text" id="schedule-residentName" readonly />
+        </div>
+        <div class="form-group">
+          <label>Waste Type</label>
+          <input type="text" id="schedule-wasteType" readonly />
+        </div>
+        <div class="form-group">
+          <label>Location</label>
+          <input type="text" id="schedule-location" readonly />
+        </div>
+        <div class="form-group">
+          <label>Collection Date <span class="required">*</span></label>
+          <input type="date" id="schedule-date" required />
+        </div>
+        <div class="form-group">
+          <label>Collection Time <span class="required">*</span></label>
+          <input type="time" id="schedule-time" required />
+        </div>
+        <!-- Service Area removed as it is not part of the schema -->
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeScheduleModal()">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" onclick="confirmScheduleCollection()">
+          Schedule Collection
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div id="detailsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Collection Details</h3>
+        <button class="close-btn" onclick="closeDetailsModal()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="detailsContent">
+        <!-- Details will be loaded here -->
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeDetailsModal()">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF Generation Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <script type="module" src="./js/pages/special-collections.js?v=101"></script>
+</body>
+
+</html>

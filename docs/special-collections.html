@@ -5,6 +5,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Special Collections - EcoSched Admin</title>
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../css/main.css" />
@@ -51,7 +53,8 @@
         <div class="card">
           <div class="card-header">
             <div class="search-box">
-              <i class="fas fa-search"></i>
+              <i class="fas fa-search" aria-hidden="true"></i>
+              <label for="searchInput" class="sr-only" style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0;">Search Collections</label>
               <input type="text" id="searchInput" placeholder="Search by resident name or location..." />
             </div>
           </div>
@@ -74,7 +77,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Verify Office Payment</h3>
-        <button class="close-btn" onclick="closeVerifyPaymentModal()">
+        <button class="close-btn" onclick="closeVerifyPaymentModal()" aria-label="Close Modal" title="Close Modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -83,29 +86,29 @@
           Enter the amount received at the office to verify this request.
         </p>
         <div class="form-group">
-          <label>Resident Name</label>
+          <label for="modal-residentName">Resident Name</label>
           <input type="text" id="modal-residentName" readonly />
         </div>
         <div class="form-group">
-          <label>Waste Type</label>
+          <label for="modal-wasteType">Waste Type</label>
           <input type="text" id="modal-wasteType" readonly />
         </div>
         <div class="form-group">
-          <label>Quantity</label>
+          <label for="modal-quantity">Quantity</label>
           <input type="text" id="modal-quantity" readonly />
         </div>
         <div class="form-group">
-          <label>Official Receipt / Reference</label>
+          <label for="modal-paymentReference">Official Receipt / Reference</label>
           <div style="display: flex; gap: 8px">
             <input type="text" id="modal-paymentReference" placeholder="Enter OR number or reference" style="flex: 1" />
             <button type="button" class="btn btn-secondary" onclick="generateReference()"
-              title="Generate auto-reference">
+              title="Generate auto-reference" aria-label="Generate auto-reference">
               <i class="fas fa-magic"></i>
             </button>
           </div>
         </div>
         <div class="form-group">
-          <label>Payment Amount <span class="required">*</span></label>
+          <label for="modal-paymentAmount">Payment Amount <span class="required">*</span></label>
           <input type="number" id="modal-paymentAmount" placeholder="Enter amount received (e.g., 500)" />
         </div>
       </div>
@@ -125,29 +128,29 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Schedule Collection</h3>
-        <button class="close-btn" onclick="closeScheduleModal()">
+        <button class="close-btn" onclick="closeScheduleModal()" aria-label="Close Modal" title="Close Modal">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Resident Name</label>
+          <label for="schedule-residentName">Resident Name</label>
           <input type="text" id="schedule-residentName" readonly />
         </div>
         <div class="form-group">
-          <label>Waste Type</label>
+          <label for="schedule-wasteType">Waste Type</label>
           <input type="text" id="schedule-wasteType" readonly />
         </div>
         <div class="form-group">
-          <label>Location</label>
+          <label for="schedule-location">Location</label>
           <input type="text" id="schedule-location" readonly />
         </div>
         <div class="form-group">
-          <label>Collection Date <span class="required">*</span></label>
+          <label for="schedule-date">Collection Date <span class="required">*</span></label>
           <input type="date" id="schedule-date" required />
         </div>
         <div class="form-group">
-          <label>Collection Time <span class="required">*</span></label>
+          <label for="schedule-time">Collection Time <span class="required">*</span></label>
           <input type="time" id="schedule-time" required />
         </div>
         <!-- Service Area removed as it is not part of the schema -->
@@ -168,7 +171,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>Collection Details</h3>
-        <button class="close-btn" onclick="closeDetailsModal()">
+        <button class="close-btn" onclick="closeDetailsModal()" aria-label="Close Modal" title="Close Modal">
           <i class="fas fa-times"></i>
         </button>
       </div>

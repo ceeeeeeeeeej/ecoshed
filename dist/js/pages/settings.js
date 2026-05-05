@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T02:54:45.619Z */
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 // Settings page functionality
 import { dbService, utils } from '../../config/supabase_config.js';
 
@@ -137,8 +137,8 @@ async function saveSettings() {
         const parsedUser = rawUser ? JSON.parse(rawUser) : null;
         const role = (parsedUser?.role || '').toLowerCase();
 
-        if (role !== 'superadmin') {
-            showNotification('Only super administrator accounts can update system settings.', 'error');
+        if (role !== 'superadmin' && role !== 'admin') {
+            showNotification('Only administrator and super administrator accounts can update system settings.', 'error');
             return;
         }
 
@@ -208,4 +208,3 @@ window.showSettingsSection = showSettingsSection;
 window.configureIntegration = configureIntegration;
 window.createBackup = createBackup;
 window.restoreBackup = restoreBackup;
-

@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require('path');
 
 // Build configuration
-const BUILD_CONFIG = {
+// Build configuration
+const DEFAULT_CONFIG = {
     sourceDir: '.',
     distDir: './dist',
     deployDir: './deploy',
@@ -13,60 +14,77 @@ const BUILD_CONFIG = {
     buildTime: new Date().toISOString()
 };
 
+// Merge with environment variables if present
+let BUILD_CONFIG = { ...DEFAULT_CONFIG };
+
+if (process.env.BUILD_CONFIG) {
+    try {
+        const envConfig = JSON.parse(process.env.BUILD_CONFIG);
+        BUILD_CONFIG = { ...BUILD_CONFIG, ...envConfig };
+    } catch (e) {
+        console.warn('⚠ Failed to parse BUILD_CONFIG environment variable:', e.message);
+    }
+}
+
+// Support CLI flags
+if (process.argv.includes('--prod')) {
+    BUILD_CONFIG.minify = true;
+    BUILD_CONFIG.optimize = true;
+}
+if (process.argv.includes('--minify')) BUILD_CONFIG.minify = true;
+if (process.argv.includes('--optimize')) BUILD_CONFIG.optimize = true;
+
+
 // Files to copy and optimize
 const FILES_TO_PROCESS = {
     html: [
-        'docs/login.html',
-        'docs/registration.html',
-        'docs/dashboard.html',
-        'docs/users.html',
-        'docs/routes.html',
-        'docs/schedules.html',
-        'docs/special-collections.html',
-        'docs/feedback.html',
-        'docs/gps-sensor.html',
-        'docs/analytics.html',
-        'docs/notifications.html',
-        'docs/settings.html',
-        'docs/index.html'
+        'html/index.html',
+        'html/login.html',
+        'html/registration.html',
+        'html/dashboard.html',
+        'html/users.html',
+        'html/bins.html',
+        'html/bin-locations.html',
+        'html/analytics.html',
+        'html/notifications.html',
+        'html/schedules.html',
+        'html/special-collections.html',
+        'html/feedback.html',
+        'html/settings.html'
     ],
     css: [
-        'css/landing.css',
         'css/main.css',
+        'css/landing.css',
         'css/dashboard.css',
-        'css/pages/users.css',
-        'css/pages/routes.css',
-        'css/pages/schedules.css',
         'css/pages/analytics.css',
         'css/pages/notifications.css',
-        'css/pages/settings.css'
+        'css/pages/schedules.css',
+        'css/pages/settings.css',
+        'css/pages/users.css',
+        'css/pages/special-collections.css',
+        'css/pages/feedback.css'
     ],
     js: [
-        'deploy/js/script.js',
-        'deploy/js/dashboard.js',
-        'deploy/js/landing.js',
-        'deploy/js/users.js',
-        'deploy/js/routes.js',
-        'deploy/js/schedules.js',
-        'deploy/js/special-collections.js',
-        'deploy/js/feedback.js',
-        'deploy/js/analytics.js',
-        'deploy/js/notifications.js',
-        'deploy/js/settings.js',
-        'deploy/js/bin-locations.js',
-        'deploy/js/bins.js',
-        'deploy/js/collectors.js',
-        'deploy/js/heatmap.js',
-        'deploy/js/registered_collectors.js'
+        'js/landing.js',
+        'js/dashboard.js',
+        'js/pages/analytics.js',
+        'js/pages/bin-locations.js',
+        'js/pages/bins.js',
+        'js/pages/feedback.js',
+        'js/pages/heatmap.js',
+        'js/pages/notifications.js',
+        'js/pages/schedules.js',
+        'js/pages/settings.js',
+        'js/pages/special-collections.js',
+        'js/pages/users.js',
+        'js/utils/activity_display.js',
+        'js/utils/activity_logger.js'
     ],
     config: [
         'config/supabase_config.js'
     ],
     assets: [
-        'assets/image/logo/logo1.png',
-        'assets/image/logo/logo2.png',
-        'assets/image/logo/logo3.png',
-        'assets/image/residentbackground.png'
+        'assets/image/logo/ecosched_logo.png'
     ]
 };
 
@@ -98,12 +116,8 @@ function minifyCSS(css) {
 function minifyJS(js) {
     return js
         .replace(/\/\*[\s\S]*?\*\//g, '') // Remove block comments
-        .replace(/\/\/.*$/gm, '') // Remove line comments
-        .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-        .replace(/\s*{\s*/g, '{') // Remove spaces around opening braces
-        .replace(/;\s*/g, ';') // Remove spaces after semicolons
-        .replace(/,\s*/g, ',') // Remove spaces after commas
-        .replace(/:\s*/g, ':') // Remove spaces after colons
+        .replace(/[ \t]+$/gm, '') // Trim trailing whitespace without changing string literals
+        .replace(/\n{3,}/g, '\n\n') // Collapse excessive blank lines
         .trim();
 }
 
@@ -137,7 +151,6 @@ function build() {
     console.log('==============================================');
     console.log(`Build Version: ${BUILD_CONFIG.version}`);
     console.log(`Build Time: ${BUILD_CONFIG.buildTime}`);
-    console.log('');
 
     // Ensure dist directory exists
     ensureDir(BUILD_CONFIG.distDir);
@@ -174,8 +187,8 @@ function build() {
             }
             content = addBuildInfo(content, 'css');
 
-            // Flatten structure: css/pages/main.css -> dist/css/main.css
-            const destPath = path.join(BUILD_CONFIG.distDir, file.replace('css/pages/', 'css/'));
+            // Keep structure: css/pages/analytics.css -> dist/css/pages/analytics.css
+            const destPath = path.join(BUILD_CONFIG.distDir, file);
             ensureDir(path.dirname(destPath));
             fs.writeFileSync(destPath, content);
             console.log(`✓ Processed: ${file} → ${destPath}`);
@@ -194,10 +207,15 @@ function build() {
             }
             content = addBuildInfo(content, 'js');
 
-            // Map: deploy/js/dashboard.js -> dist/js/dashboard.js
-            const destPath = path.join(BUILD_CONFIG.distDir, file.replace('deploy/js/', 'js/').replace('js/pages/', 'js/'));
+            // Keep js/pages/* because the built HTML points to those paths.
+            const destPath = path.join(BUILD_CONFIG.distDir, file);
             ensureDir(path.dirname(destPath));
             fs.writeFileSync(destPath, content);
+            if (file.startsWith('js/pages/')) {
+                const legacyDestPath = path.join(BUILD_CONFIG.distDir, file.replace('js/pages/', 'js/'));
+                ensureDir(path.dirname(legacyDestPath));
+                fs.writeFileSync(legacyDestPath, content);
+            }
             console.log(`✓ Processed: ${file} → ${destPath}`);
         } else {
             console.log(`⚠ Skipped: ${file} (not found)`);

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSched - Community Waste Services</title>
+    <meta name="description"
+        content="EcoSched helps barangays publish waste collection schedules, coordinate routes, and keep residents informed.">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://maps.googleapis.com https://www.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com;">
+    <link rel="icon" type="image/png" href="../assets/image/logo/ecosched_logo.png">
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="../css/landing.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="landing-page">
+    <nav class="site-nav" aria-label="Primary navigation">
+        <a class="brand" href="#home" aria-label="EcoSched home">
+            <img src="../assets/image/logo/ecosched_logo.png" alt="" class="brand-mark">
+            <span>EcoSched</span>
+        </a>
+
+        <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false"
+            aria-controls="navMenu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <div class="nav-menu" id="navMenu">
+            <a href="#home" class="nav-link active">Home</a>
+            <a href="#services" class="nav-link">Services</a>
+            <a href="#coverage" class="nav-link">Coverage</a>
+            <a href="#about" class="nav-link">About</a>
+            <a href="login.html" class="portal-link">Admin Portal</a>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero" id="home">
+            <div class="hero-scene" aria-hidden="true">
+                <div class="service-map">
+                    <span class="map-road road-a"></span>
+                    <span class="map-road road-b"></span>
+                    <span class="map-road road-c"></span>
+                    <span class="map-node node-a"></span>
+                    <span class="map-node node-b"></span>
+                    <span class="map-node node-c"></span>
+                    <span class="map-node node-d"></span>
+                    <span class="route-truck"><i class="fas fa-truck"></i></span>
+                </div>
+                <div class="scene-panel schedule-panel">
+                    <span class="panel-kicker">Today</span>
+                    <strong>Victoria Route</strong>
+                    <span>7:30 AM collection window</span>
+                </div>
+                <div class="scene-panel alert-panel">
+                    <i class="fas fa-bell"></i>
+                    <span>Residents notified</span>
+                </div>
+                <div class="scene-panel metric-panel">
+                    <strong>94%</strong>
+                    <span>route completion</span>
+                </div>
+            </div>
+
+            <div class="hero-content reveal">
+                <p class="eyebrow">Barangay Waste Collection Platform</p>
+                <h1>EcoSched</h1>
+                <p class="hero-copy">
+                    A practical admin pipeline for approving accounts, publishing collection schedules, coordinating
+                    collectors, notifying residents, and reviewing service activity from one dependable operations hub.
+                </p>
+                <div class="hero-actions">
+                    <a href="login.html" class="btn-hero primary-action">
+                        <i class="fas fa-lock"></i>
+                        Admin Portal
+                    </a>
+                    <a href="#coverage" class="btn-hero secondary-action">
+                        <i class="fas fa-map-location-dot"></i>
+                        View Coverage
+                    </a>
+                </div>
+                <div class="hero-proof" aria-label="Service highlights">
+                    <div>
+                        <strong data-count="2">2</strong>
+                        <span>Barangays</span>
+                    </div>
+                    <div>
+                        <strong data-count="24">24</strong>
+                        <span>Hour alerts</span>
+                    </div>
+                    <div>
+                        <strong data-count="100">100</strong>
+                        <span>Coverage goal</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-band" id="services">
+            <div class="section-heading reveal">
+                <p class="eyebrow">Built For Daily Operations</p>
+                <h2>Everything the collection team needs to stay aligned</h2>
+                <p>
+                    EcoSched keeps the admin dashboard focused on the real barangay workflow, from account creation to
+                    collection updates and reporting.
+                </p>
+            </div>
+
+            <div class="feature-grid">
+                <article class="feature-card reveal">
+                    <i class="fas fa-user-check"></i>
+                    <h3>Account Gatekeeping</h3>
+                    <p>Review admin access, manage resident records, and keep operational roles clear.</p>
+                </article>
+                <article class="feature-card reveal">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>Schedule Publishing</h3>
+                    <p>Create recurring area schedules, reschedule one-time collections, and keep future runs visible.</p>
+                </article>
+                <article class="feature-card reveal">
+                    <i class="fas fa-truck-fast"></i>
+                    <h3>Collector Coordination</h3>
+                    <p>Connect schedules, routes, bins, and collectors so daily collection work is easier to track.</p>
+                </article>
+                <article class="feature-card reveal">
+                    <i class="fas fa-chart-simple"></i>
+                    <h3>Admin Reporting</h3>
+                    <p>Review activity, feedback, special requests, and service signals from the dashboard.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="admin-flow-band" aria-labelledby="adminFlowTitle">
+            <div class="section-heading reveal">
+                <p class="eyebrow">Admin Pipeline</p>
+                <h2 id="adminFlowTitle">How the dashboard moves daily work</h2>
+                <p>
+                    The landing page now mirrors the system flow admins actually use inside EcoSched.
+                </p>
+            </div>
+            <div class="flow-track">
+                <article class="flow-step reveal">
+                    <span>01</span>
+                    <i class="fas fa-id-badge"></i>
+                    <h3>Approve Access</h3>
+                    <p>Validate accounts and keep roles limited to the right people.</p>
+                </article>
+                <article class="flow-step reveal">
+                    <span>02</span>
+                    <i class="fas fa-calendar-days"></i>
+                    <h3>Plan Collection</h3>
+                    <p>Set weekly schedules and handle one-time reschedules.</p>
+                </article>
+                <article class="flow-step reveal">
+                    <span>03</span>
+                    <i class="fas fa-route"></i>
+                    <h3>Coordinate Routes</h3>
+                    <p>Keep barangays, bins, collectors, and routes aligned.</p>
+                </article>
+                <article class="flow-step reveal">
+                    <span>04</span>
+                    <i class="fas fa-bullhorn"></i>
+                    <h3>Notify Residents</h3>
+                    <p>Send clear schedule updates and collection notices.</p>
+                </article>
+                <article class="flow-step reveal">
+                    <span>05</span>
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Review Activity</h3>
+                    <p>Use feedback and reports to improve service decisions.</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="coverage-band" id="coverage">
+            <div class="coverage-layout">
+                <div class="coverage-copy reveal">
+                    <p class="eyebrow">Service Coverage</p>
+                    <h2>Focused on Victoria and Dayo-an, Tago</h2>
+                    <p>
+                        The platform is tailored for barangay-level service coordination in Tago, Surigao del Sur, with
+                        clear coverage areas and room to expand as operations grow.
+                    </p>
+                    <div class="coverage-list">
+                        <span><i class="fas fa-check"></i> Victoria Barangay</span>
+                        <span><i class="fas fa-check"></i> Dayo-an Barangay</span>
+                    </div>
+                </div>
+
+                <div class="map-shell reveal">
+                    <button class="map-btn prev" type="button" aria-label="Previous service map">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="map-slider" aria-live="polite">
+                        <article class="map-slide active" data-map="victoria">
+                            <div class="map-header">
+                                <div>
+                                    <h3>Victoria</h3>
+                                    <p>Tago, Surigao del Sur</p>
+                                </div>
+                                <span>Active</span>
+                            </div>
+                            <iframe title="Victoria service area map"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d19763.321794787913!2d126.1958032121326!3d9.031731998218428!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x330239cfea9ea383%3A0x3240a7ae50924a9d!2sVictoria%2C%20Tago%2C%20Surigao%20del%20Sur!5e1!3m2!1sen!2sph!4v1764049305105!5m2!1sen!2sph"
+                                loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </article>
+                        <article class="map-slide" data-map="dayoan">
+                            <div class="map-header">
+                                <div>
+                                    <h3>Dayo-an</h3>
+                                    <p>Tago, Surigao del Sur</p>
+                                </div>
+                                <span>Active</span>
+                            </div>
+                            <iframe title="Dayo-an service area map"
+                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13573.50579619885!2d126.17362768079705!3d9.019601195578693!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x33023988ea8344fb%3A0x7b45b846c5dec1e6!2sDayo-an%2C%20Tago%2C%20Surigao%20del%20Sur!5e1!3m2!1sen!2sph!4v1764049411205!5m2!1sen!2sph"
+                                loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </article>
+                    </div>
+                    <button class="map-btn next" type="button" aria-label="Next service map">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section class="about-band" id="about">
+            <div class="about-layout">
+                <div class="about-mark reveal">
+                    <img src="../assets/image/logo/ecosched_logo.png" alt="EcoSched logo">
+                </div>
+                <div class="about-copy reveal">
+                    <p class="eyebrow">About EcoSched</p>
+                    <h2>Simple coordination for cleaner communities</h2>
+                    <p>
+                        EcoSched supports barangay administrators, residents, and collection teams with a practical
+                        system for planning waste collection, reducing confusion, and improving service visibility.
+                    </p>
+                    <div class="about-points">
+                        <span><i class="fas fa-leaf"></i> Cleaner public spaces</span>
+                        <span><i class="fas fa-users"></i> Resident-centered updates</span>
+                        <span><i class="fas fa-shield-alt"></i> Admin-controlled workflows</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="cta-band">
+            <div class="cta-content reveal">
+                <h2>Ready to manage collection work with more confidence?</h2>
+                <a href="login.html" class="btn-hero primary-action">
+                    <i class="fas fa-arrow-right-to-bracket"></i>
+                    Open Admin Portal
+                </a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div>
+            <a class="brand footer-brand" href="#home">
+                <img src="../assets/image/logo/ecosched_logo.png" alt="" class="brand-mark">
+                <span>EcoSched</span>
+            </a>
+            <p>Community waste service coordination for Tago, Surigao del Sur.</p>
+        </div>
+        <nav aria-label="Footer navigation">
+            <a href="#services">Services</a>
+            <a href="#coverage">Coverage</a>
+            <a href="#about">About</a>
+            <a href="login.html">Admin Portal</a>
+        </nav>
+    </footer>
+
+    <script src="../js/landing.js" defer></script>
+</body>
+
+</html>

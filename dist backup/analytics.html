@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analytics & Reports - EcoSched Admin</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/pages/analytics.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="page-container">
+        <div class="page-header">
+            <div class="header-left">
+                <h1 class="page-title">
+                    <i class="fas fa-chart-line"></i>
+                    Analytics & Reports
+                </h1>
+                <p class="page-subtitle">Track performance and generate insights</p>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="showHeatmapInput()">
+                    <i class="fas fa-check"></i>
+                    Apply
+                </button>
+            </div>
+        </div>
+
+        <!-- Sensor Metrics -->
+        <div class="metrics-grid">
+            <div class="metric-card" onclick="navigateToBinsWithFilter('all')" style="cursor: pointer;">
+                <div class="metric-icon">
+                    <i class="fas fa-dumpster"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Average Fill Level</h3>
+                    <div class="metric-value" id="avgFillValue">---%</div>
+                    <div class="metric-change" id="avgFillChange">From all sensors</div>
+                </div>
+            </div>
+            <div class="metric-card" onclick="navigateToBinsWithFilter('critical')" style="cursor: pointer;">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Critical Bins</h3>
+                    <div class="metric-value" id="criticalBinsValue">---</div>
+                    <div class="metric-change" id="criticalBinsChange">Require immediate attention</div>
+                </div>
+            </div>
+            <div class="metric-card" onclick="navigateToBinsWithFilter('active')" style="cursor: pointer;">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #10b981, #059669);">
+                    <div class="pulse-dot-container">
+                        <span class="pulse-dot"></span>
+                        <i class="fas fa-broadcast-tower"></i>
+                    </div>
+                </div>
+                <div class="metric-content">
+                    <h3>Active Sensors</h3>
+                    <div class="metric-value" id="activeSensorsValue">---</div>
+                    <div class="metric-change" id="activeSensorsChange">Online now</div>
+                </div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="metric-content">
+                    <h3>Last Update</h3>
+                    <div class="metric-value" id="lastUpdateValue">---</div>
+                    <div class="metric-change" id="lastUpdateChange">Real-time monitoring</div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <!-- Heatmap Modal (Input Only) -->
+        <div id="hmModal" class="hm-modal">
+            <div class="hm-modal-content">
+                <div class="hm-modal-header">
+                    <div class="hm-modal-title">
+                        <i class="fas fa-keyboard"></i> Define Waste Data
+                    </div>
+                    <div class="hm-modal-header-ctrls">
+                        <button class="btn btn-outline btn-small" id="hmAutoBtn"
+                                onclick="hmAutoPopulate()" title="Populate from Supabase collection records">
+                            <i class="fas fa-database"></i> Auto-populate
+                        </button>
+                        <button class="hm-modal-close" onclick="closeHeatmapModal()" title="Close modal" aria-label="Close modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="hm-modal-body">
+                    <p class="hm-modal-sub">
+                        Enter waste volumes manualy below or use <strong>Auto-populate</strong>.
+                        The heatmap will be displayed on the dashboard below.
+                    </p>
+                    <div id="heatmapFormRoot" class="hm-form-root"></div>
+                </div>
+                <div class="hm-modal-footer">
+                    <button class="btn btn-primary" onclick="applyAndShowHeatmap()">
+                        <i class="fas fa-magic"></i> Generate Analytics
+                    </button>
+                    <button class="btn btn-outline" onclick="WasteHeatmap._clearForm()">
+                        <i class="fas fa-undo"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Heatmap Result Section (On Dashboard) -->
+        <div id="hmResultSection" class="hm-result-section" style="display: none;">
+            <div class="hm-result-header">
+                <div>
+                    <h2 class="hm-result-title">
+                        <i class="fas fa-th"></i> Waste Analytics Heatmap
+                    </h2>
+                    <p class="hm-result-sub">Generated based on provided waste data</p>
+                </div>
+                <div class="hm-result-ctrls">
+                    <div class="hm-view-toggle" id="hmViewToggle">
+                        <button class="hm-vtbtn active" data-view="volume"
+                                onclick="WasteHeatmap.setView('volume'); hmToggle(this)">
+                            <i class="fas fa-box"></i> kg
+                        </button>
+                        <button class="hm-vtbtn" data-view="percentage"
+                                onclick="WasteHeatmap.setView('percentage'); hmToggle(this)">
+                            <i class="fas fa-percent"></i> %
+                        </button>
+                    </div>
+                    <button class="btn btn-outline btn-small" onclick="showHeatmapInput()">
+                        <i class="fas fa-edit"></i> Edit Data
+                    </button>
+                </div>
+            </div>
+            
+            <div id="heatmapRoot" class="hm-vis-root"></div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="hmToast" class="hm-toast">
+            <div class="hm-toast-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="hm-toast-msg">Analytics generated successfully!</div>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="reports-section">
+            <div class="section-header">
+                <h3>Recent Reports</h3>
+                <button class="btn btn-outline" onclick="createCustomReport()">
+                    <i class="fas fa-plus"></i>
+                    Custom Report
+                </button>
+            </div>
+            <div class="reports-grid" id="reportsGrid">
+                <!-- Reports will be loaded dynamically from Firebase -->
+                <div class="empty-state" style="grid-column: 1/-1; text-align: center; padding: 3rem; color: #9CA3AF;">
+                    <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p style="font-size: 1.1rem; margin: 0;">No reports available yet</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem;">Generate your first report using the button above
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./js/pages/heatmap.js"></script>
+    <script type="module" src="./js/pages/analytics.js"></script>
+    <script>
+        /** Syncs the active state on the view-mode toggle buttons. */
+        function hmToggle(btn) {
+            document.querySelectorAll('.hm-vtbtn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        /** Triggered inside the modal's 'Generate' button */
+        function applyAndShowHeatmap() {
+            // Close modal first
+            closeHeatmapModal();
+
+            // Reveal result section on page
+            const resultSection = document.getElementById('hmResultSection');
+            if (resultSection) {
+                resultSection.style.display = 'block';
+            }
+
+            // Trigger the heatmap render logic
+            WasteHeatmap._applyForm();
+
+            // Show Toast
+            const toast = document.getElementById('hmToast');
+            if (toast) {
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
+            }
+
+            // Scroll to result
+            setTimeout(() => {
+                if (resultSection) {
+                    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }, 100);
+        }
+
+        /** Opens the modal in data-entry mode */
+        function showHeatmapInput() {
+            const modal = document.getElementById('hmModal');
+            if (modal) modal.classList.add('show');
+        }
+
+        function closeHeatmapModal() {
+            const modal = document.getElementById('hmModal');
+            if (modal) modal.classList.remove('show');
+        }
+
+        /**
+         * Auto-populates the heatmap from Supabase collection records
+         * (analyticsData is exposed by analytics.js after the module loads).
+         * Falls back gracefully if no records exist.
+         */
+        function hmAutoPopulate() {
+            const btn = document.getElementById('hmAutoBtn');
+            if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...'; }
+
+            setTimeout(() => {
+                try {
+                    // analyticsData is a module-scoped var in analytics.js
+                    // We expose it via window.analyticsData in analytics.js
+                    const records = (window.analyticsData && window.analyticsData.collections) || [];
+                    const derived = WasteHeatmap.loadFromCollections(records);
+                    if (derived) {
+                        WasteHeatmap.update(derived);
+                        // Reflect in the form
+                        WasteHeatmap.renderForm('heatmapFormRoot');
+                    } else {
+                        alert('No collection records found in the database yet.');
+                    }
+                } catch(e) {
+                    console.error('Auto-populate error:', e);
+                }
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-database"></i> Auto-populate'; }
+            }, 300);
+        }
+
+        // Initialize the form on load (non-module context waits for DOMContentLoaded)
+        document.addEventListener('DOMContentLoaded', () => {
+            WasteHeatmap.renderForm('heatmapFormRoot');
+        });
+
+        // Pulse dot for active sensors
+        const pulseStyle = document.createElement('style');
+        pulseStyle.textContent = `
+            .metric-card {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+            }
+            .metric-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 30px -10px rgba(0,0,0,0.1);
+                border-color: #10b981;
+            }
+            .pulse-dot-container {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .pulse-dot {
+                position: absolute;
+                top: -2px;
+                right: -2px;
+                width: 8px;
+                height: 8px;
+                background: #ffffff;
+                border-radius: 50%;
+                box-shadow: 0 0 0 rgba(255, 255, 255, 0.4);
+                animation: pulse-white 2s infinite;
+            }
+            @keyframes pulse-white {
+                0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+                70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+            }
+        `;
+        document.head.appendChild(pulseStyle);
+    </script>
+    <div id="renamePlanModal" class="modal-overlay">
+        <div class="edit-modal">
+            <div class="modal-header">
+                <h3 style="margin:0; font-size:1.25rem; color:#111827;">Rename Saved Plan</h3>
+            </div>
+            <div class="modal-body">
+                <label class="form-label" for="newPlanName">New Plan Name</label>
+                <input type="text" id="newPlanName" class="form-input" placeholder="Enter plan name...">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRenameModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitRenamePlan()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

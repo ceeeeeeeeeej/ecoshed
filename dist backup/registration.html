@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSched - Create Account</title>
+    <link rel="stylesheet" href="./css/main.css">
+    <link rel="stylesheet" href="./css/landing.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+        .role-card { position: relative; cursor: pointer; }
+        .role-card input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .role-card-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 12px;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            color: rgba(255,255,255,0.7);
+            cursor: pointer;
+            transition: all 0.25s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        .role-card-label i { font-size: 1.4rem; opacity: 0.75; transition: all 0.25s ease; }
+        .role-card input:checked + .role-card-label {
+            border-color: #10b981;
+            background: rgba(16,185,129,0.15);
+            color: #fff;
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.2);
+        }
+        .role-card input:checked + .role-card-label i { opacity: 1; color: #10b981; }
+        .role-card-label:hover { border-color: rgba(16,185,129,0.5); background: rgba(255,255,255,0.08); }
+
+        /* Phone field shown only for collector */
+        #phoneGroup { display: none; }
+        #phoneGroup.visible { display: block; }
+    </style>
+</head>
+
+<body>
+    <div id="registrationScreen" class="hero">
+        <div class="hero-background">
+            <div class="hero-overlay"></div>
+            <div class="floating-elements">
+                <div class="floating-leaf leaf-1"></div>
+                <div class="floating-leaf leaf-2"></div>
+                <div class="floating-leaf leaf-3"></div>
+                <div class="recycling-symbol symbol-1"></div>
+                <div class="recycling-symbol symbol-2"></div>
+            </div>
+        </div>
+
+        <div class="hero-content">
+            <div class="glass-panel registration-panel">
+                <div class="panel-header">
+                    <div class="nav-logo">
+                        <img src="./assets/image/logo/logo1.png" alt="EcoSched Logo" class="logo-image">
+                        <span class="logo-text">EcoSched</span>
+                    </div>
+                    <h1 class="panel-title">Create Account</h1>
+                    <p class="panel-subtitle">Register a new admin or collector account</p>
+                </div>
+
+                <form id="registrationForm" class="eco-form">
+
+                    <!-- Role Selector -->
+                    <div class="form-group">
+                        <label class="field-label">Account Role</label>
+                        <div class="role-selector">
+                            <div class="role-card">
+                                <input type="radio" id="roleAdmin" name="role" value="admin" checked>
+                                <label class="role-card-label" for="roleAdmin">
+                                    <i class="fas fa-user-shield"></i>
+                                    Admin
+                                </label>
+                            </div>
+                            <div class="role-card">
+                                <input type="radio" id="roleCollector" name="role" value="collector">
+                                <label class="role-card-label" for="roleCollector">
+                                    <i class="fas fa-truck"></i>
+                                    Collector
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Name -->
+                    <div class="form-group">
+                        <label class="field-label">Full Name</label>
+                        <div class="input-field">
+                            <input type="text" id="regFullName" name="fullName" placeholder="Enter full name" required>
+                        </div>
+                    </div>
+
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label class="field-label">Email Address</label>
+                        <div class="input-field">
+                            <input type="email" id="regEmail" name="email" placeholder="user@ecosched.com" required>
+                        </div>
+                    </div>
+
+                    <!-- Phone (Collector only) -->
+                    <div class="form-group" id="phoneGroup">
+                        <label class="field-label">Phone Number</label>
+                        <div class="input-field">
+                            <input type="tel" id="regPhone" name="phone" placeholder="09XXXXXXXXX">
+                        </div>
+                    </div>
+
+                    <!-- Password -->
+                    <div class="form-group">
+                        <label class="field-label">Password</label>
+                        <div class="input-field">
+                            <input type="password" id="regPassword" name="password" placeholder="Create a password" required>
+                        </div>
+                    </div>
+
+                    <!-- Confirm Password -->
+                    <div class="form-group">
+                        <label class="field-label">Confirm Password</label>
+                        <div class="input-field">
+                            <input type="password" id="regConfirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="eco-button register-button">
+                        <span>Create Account</span>
+                        <div class="recycling-icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                    </button>
+
+                    <div class="existing-account">
+                        <p>Already have an account? <a href="login.html" class="eco-link">Log In</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { authService, dbService, utils } from './config/supabase_config.js?v=2.0';
+
+        // Show/hide phone field based on role selection
+        document.querySelectorAll('input[name="role"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const phoneGroup = document.getElementById('phoneGroup');
+                phoneGroup.classList.toggle('visible', radio.value === 'collector' && radio.checked);
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('registrationForm');
+            if (form) {
+                form.addEventListener('submit', handleRegistration);
+                form.querySelectorAll('input').forEach(f => f.addEventListener('blur', validateField));
+
+                // Password match live check
+                document.getElementById('regConfirmPassword').addEventListener('input', function () {
+                    const pwd = document.getElementById('regPassword').value;
+                    const group = this.closest('.form-group');
+                    group.querySelector('.error-message')?.remove();
+                    if (this.value && this.value !== pwd) {
+                        group.classList.add('error');
+                        const d = document.createElement('div');
+                        d.className = 'error-message';
+                        d.textContent = 'Passwords do not match';
+                        group.appendChild(d);
+                    } else {
+                        group.classList.remove('error');
+                        if (this.value) group.classList.add('success');
+                    }
+                });
+            }
+        });
+
+        async function handleRegistration(e) {
+            e.preventDefault();
+            clearValidationStates();
+
+            const formData    = new FormData(e.target);
+            const role        = formData.get('role');
+            const fullName    = formData.get('fullName')?.trim();
+            const email       = formData.get('email')?.trim();
+            const phone       = formData.get('phone')?.trim() || '';
+            const password    = formData.get('password');
+            const confirmPass = formData.get('confirmPassword');
+
+            // Validation
+            let valid = true;
+            if (!fullName || fullName.length < 2) {
+                showFieldError('regFullName', 'Full name must be at least 2 characters'); valid = false;
+            } else if (!/^[a-zA-ZÀ-ÿ\s.'-]+$/.test(fullName)) {
+                showFieldError('regFullName', 'Full name can only contain letters and spaces'); valid = false;
+            }
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showFieldError('regEmail', 'Please enter a valid email address'); valid = false;
+            }
+            if (!password || password.length < 8) {
+                showFieldError('regPassword', 'Password must be at least 8 characters'); valid = false;
+            }
+            if (!confirmPass) {
+                showFieldError('regConfirmPassword', 'Please confirm your password'); valid = false;
+            } else if (password !== confirmPass) {
+                showFieldError('regConfirmPassword', 'Passwords do not match'); valid = false;
+            }
+            if (!valid) return;
+
+            // Loading state
+            const submitBtn = document.querySelector('.register-button');
+            if (submitBtn) {
+                submitBtn.classList.add('loading');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Account...</span>';
+            }
+
+            try {
+                const nameParts = fullName.split(' ');
+                const firstName = nameParts[0] || fullName;
+                const lastName  = nameParts.slice(1).join(' ') || '';
+
+                const accountData = {
+                    firstName,
+                    lastName,
+                    fullName,
+                    phone,
+                    role,
+                    status: role === 'collector' ? 'active' : 'pending_approval'
+                };
+
+                const result = await authService.signUp(email, password, accountData);
+                if (result.error) throw result.error;
+
+                // Success
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-check"></i><span>Account Created!</span>';
+                    submitBtn.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                }
+
+                const msg = role === 'collector'
+                    ? 'Collector account created! They can now log in on the Collector App.'
+                    : 'Admin account created! Awaiting approval before first login.';
+                showNotification(msg, 'success');
+
+                setTimeout(() => {
+                    e.target.reset();
+                    document.getElementById('phoneGroup').classList.remove('visible');
+                    document.getElementById('roleAdmin').checked = true;
+                    if (submitBtn) {
+                        submitBtn.innerHTML = '<span>Create Account</span><div class="recycling-icon"><i class="fas fa-user-plus"></i></div>';
+                        submitBtn.style.background = '';
+                        submitBtn.classList.remove('loading');
+                        submitBtn.disabled = false;
+                    }
+                }, 3000);
+
+            } catch (error) {
+                console.error('Registration error:', error);
+                const msg = utils?.getErrorMessage ? utils.getErrorMessage(error) : error.message || 'Registration failed';
+                showNotification(msg, 'error');
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-times"></i><span>Registration Failed</span>';
+                    submitBtn.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    setTimeout(() => {
+                        submitBtn.innerHTML = '<span>Create Account</span><div class="recycling-icon"><i class="fas fa-user-plus"></i></div>';
+                        submitBtn.style.background = '';
+                        submitBtn.classList.remove('loading');
+                        submitBtn.disabled = false;
+                    }, 3000);
+                }
+            }
+        }
+
+        function showFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            const group = field.closest('.form-group');
+            group.classList.add('error');
+            const d = document.createElement('div');
+            d.className = 'error-message';
+            d.textContent = message;
+            group.appendChild(d);
+        }
+
+        function clearValidationStates() {
+            document.querySelectorAll('.form-group').forEach(g => {
+                g.classList.remove('error', 'success');
+                g.querySelector('.error-message')?.remove();
+            });
+        }
+
+        function validateField(e) {
+            const field = e.target;
+            const value = field.value.trim();
+            const group = field.closest('.form-group');
+            group.classList.remove('error', 'success');
+            group.querySelector('.error-message')?.remove();
+
+            let ok = true, msg = '';
+            if (field.id === 'regFullName' && value.length > 0 && value.length < 2) {
+                ok = false; msg = 'Must be at least 2 characters';
+            }
+            if (field.id === 'regEmail' && value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+                ok = false; msg = 'Invalid email address';
+            }
+            if (field.id === 'regPassword' && value && value.length < 8) {
+                ok = false; msg = 'Password must be at least 8 characters';
+            }
+            if (field.id === 'regConfirmPassword' && value) {
+                const pwd = document.getElementById('regPassword').value;
+                if (value !== pwd) { ok = false; msg = 'Passwords do not match'; }
+            }
+
+            if (value) {
+                if (ok) group.classList.add('success');
+                else {
+                    group.classList.add('error');
+                    const d = document.createElement('div'); d.className = 'error-message'; d.textContent = msg;
+                    group.appendChild(d);
+                }
+            }
+        }
+
+        function showNotification(message, type = 'success') {
+            const n = document.createElement('div');
+            n.className = `registration-notification ${type}`;
+            n.innerHTML = `<div class="notification-content"><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'}"></i><span>${message}</span></div>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.classList.add('show'), 100);
+            setTimeout(() => { n.classList.remove('show'); setTimeout(() => n.remove(), 300); }, 5000);
+        }
+    </script>
+</body>
+
+</html>

@@ -1,4 +1,4 @@
-/* Build: 1.0.0 - 2026-03-17T12:48:30.516Z */
+/* Build: 1.0.0 - 2026-04-29T09:01:21.954Z */
 // Collectors Page JavaScript
 import { dbService, realtime, utils } from '../../config/supabase_config.js';
 
@@ -601,7 +601,7 @@ function formatPhoneNumber(input) {
     if (value.length <= 3) {
         input.value = value;
     } else if (value.length <= 6) {
-        input.value = `(${value.slice(0, 3)}) ${value.slice(3)}`;
+        input.value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}`;
     } else if (value.length <= 10) {
         input.value = `(${value.slice(0, 3)}) ${value.slice(3, 6)}-${value.slice(6)}`;
     } else if (value.length === 11 && value[0] === '1') {
@@ -727,4 +727,3 @@ window.viewCollectorDetails = viewCollectorDetails;
 window.editCollector = editCollector;
 window.resetFilters = resetFilters;
 window.deleteCollectorTruck = deleteCollectorTruck;
-

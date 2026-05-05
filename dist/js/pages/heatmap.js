@@ -1,18 +1,4 @@
-/* Build: 1.0.0 - 2026-04-10T01:00:39.599Z */
-/**
- * WasteHeatmap — Dynamic Waste Analytics Heatmap
- * ================================================
- * Renders a sector × waste-type heatmap where ALL colors are
- * assigned purely by relative position between the min and max
- * values in the dataset. No values are ever hardcoded.
- *
- * Public API:
- *   WasteHeatmap.render(data, containerId?)   — first render
- *   WasteHeatmap.update(data)                 — live update / re-render
- *   WasteHeatmap.setView(mode)                — 'volume' | 'percentage'
- *   WasteHeatmap.loadFromCollections(records) — derive data from Supabase records
- */
-
+/* Build: 1.0.0 - 2026-05-05T13:37:32.854Z */
 const WasteHeatmap = (() => {
 
     // ── Configuration ──────────────────────────────────────────────
@@ -30,10 +16,6 @@ const WasteHeatmap = (() => {
         { key: 'special',       label: 'Special',       unit: 'kg' }
     ];
 
-    /**
-     * Keyword maps: these only classify existing records from Supabase
-     * into category buckets — they do NOT produce any values.
-     */
     const WASTE_KEYWORDS = {
         biodegradable:  ['bio', 'organic', 'food', 'garden', 'plant'],
         recyclable:     ['recycl', 'plastic', 'metal', 'paper', 'glass', 'tin', 'card'],
@@ -54,14 +36,7 @@ const WasteHeatmap = (() => {
     let _containerId = 'heatmapRoot';
 
     // ── Color Engine ────────────────────────────────────────────────
-    /**
-     * Maps a normalised value t ∈ [0, 1] to an HSL color on the
-     * green → yellow → orange → red gradient.
-     *
-     * t=0  →  green  (#22c55e  hue≈142)
-     * t=0.5 → yellow (#eab308  hue≈48)
-     * t=1   →  red   (#ef4444  hue≈0)
-     */
+
     function interpolateColor(t) {
         // Clamp
         t = Math.max(0, Math.min(1, t));
@@ -72,7 +47,6 @@ const WasteHeatmap = (() => {
         return `hsl(${hue},${sat}%,${lgt}%)`;
     }
 
-    /** Lighter version for gradient stop */
     function interpolateColorLight(t) {
         t = Math.max(0, Math.min(1, t));
         const hue = Math.round(140 - t * 140);
@@ -81,7 +55,6 @@ const WasteHeatmap = (() => {
         return `hsl(${hue},${sat}%,${lgt}%)`;
     }
 
-    /** Gets a human-readable intensity label for a t value */
     function intensityLabel(t) {
         if (t >= 0.75) return 'HIGH';
         if (t >= 0.50) return 'MOD-HIGH';
@@ -90,10 +63,7 @@ const WasteHeatmap = (() => {
     }
 
     // ── Data Utilities ──────────────────────────────────────────────
-    /**
-     * Flattens a data matrix into all cell values, returning { min, max }.
-     * Returns { min:0, max:0 } when the matrix is empty.
-     */
+
     function computeRange(data) {
         const values = [];
         for (const s of SECTORS) {
@@ -106,13 +76,11 @@ const WasteHeatmap = (() => {
         return { min: Math.min(...values), max: Math.max(...values) };
     }
 
-    /** Normalises a value v into [0,1] given { min, max }. */
     function normalise(v, range) {
         if (range.max === range.min) return 0;
         return (v - range.min) / (range.max - range.min);
     }
 
-    /** Total waste across all cells. */
     function totalWaste(data) {
         let total = 0;
         for (const s of SECTORS) for (const w of WASTE_TYPES) total += data?.[s.key]?.[w.key] || 0;
@@ -173,17 +141,14 @@ const WasteHeatmap = (() => {
                 const cell = document.createElement('div');
                 cell.className = 'hm-cell';
                 cell.style.background = `linear-gradient(135deg, ${bg0}, ${bg1})`;
-                cell.title = `${sector.label} Sector\nWaste Type: ${wt.label}\nVolume: ${raw.toLocaleString()} kg\nContribution: ${pct}% of total`;
+                cell.title = `${sector.label} · ${wt.label}: ${raw.toLocaleString()} kg (${pct}%)`;
                 cell.dataset.value = raw;
                 cell.dataset.t = t.toFixed(3);
 
                 cell.innerHTML = `
                     <div class="hm-val">${displayVal}</div>
                     <div class="hm-unit">${_viewMode === 'percentage' ? 'of total' : 'kg'}</div>
-                    <div class="hm-sub-row">
-                        <span class="hm-sub-pct">${_viewMode === 'percentage' ? (raw > 0 ? raw.toLocaleString() + 'kg' : '—') : pct + '%'}</span>
-                        <span class="hm-sub-label">${_viewMode === 'percentage' ? 'volume' : 'of total'}</span>
-                    </div>
+                    <div class="hm-sub">${subVal}</div>
                     <span class="hm-badge">${intensityLabel(t)}</span>
                 `;
 
@@ -352,10 +317,7 @@ const WasteHeatmap = (() => {
     }
 
     // ── Input form ──────────────────────────────────────────────────
-    /**
-     * Renders the data-entry form into `formContainerId`.
-     * Totals appear as a footer row below Institutional.
-     */
+
     function renderForm(formContainerId) {
         const fc = document.getElementById(formContainerId);
         if (!fc) return;
@@ -454,7 +416,6 @@ const WasteHeatmap = (() => {
         updateFormTotals();
     }
 
-    /** Recomputes column totals and grand total in the footer row. */
     function updateFormTotals() {
         let grandTotal = 0;
         for (const wt of WASTE_TYPES) {
@@ -467,7 +428,7 @@ const WasteHeatmap = (() => {
             const display = document.getElementById(`hm_col_total_${wt.key}`);
             if (display) display.textContent = colTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-        
+
         // Update grand total in the label
         const grandEl = document.getElementById('hm_form_grand_total');
         if (grandEl) {
@@ -475,7 +436,6 @@ const WasteHeatmap = (() => {
         }
     }
 
-    /** @deprecated kept for backward compat; delegates to updateFormTotals() */
     function updateFormRowTotal(sectorKey) { updateFormTotals(); }
 
     function collectAndUpdate() {
@@ -530,10 +490,7 @@ const WasteHeatmap = (() => {
     }
 
     // ── Database Persistence ─────────────────────────────────────────
-    /**
-     * Saves the current heatmap data to the `waste_management_plans` table in Supabase.
-     * Uses the global `supabase` client exposed by supabase_config.js.
-     */
+
     async function saveToDatabase(data) {
         try {
             // Compute sector row totals
@@ -597,14 +554,7 @@ const WasteHeatmap = (() => {
     }
 
     // ── Load from Supabase collection records ───────────────────────
-    /**
-     * Classifies Supabase collection records into sector×type buckets
-     * using only keyword matching. Each matched record contributes
-     * ONE count to its cell — the heatmap shows frequency, not weight.
-     * No numeric values are assumed.
-     *
-     * @param {Array} records - analyticsData.collections from analytics.js
-     */
+
     function loadFromCollections(records) {
         if (!Array.isArray(records) || records.length === 0) return null;
 

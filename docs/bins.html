@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensor Monitoring - EcoSched Admin</title>
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://maps.googleapis.com https://www.google.com https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https:; frame-src 'self' https://www.google.com https://maps.googleapis.com; connect-src 'self' https://maps.googleapis.com https://bfqktqtsjchbmopafgzf.supabase.co wss://bfqktqtsjchbmopafgzf.supabase.co;">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <!-- Leaflet CSS for maps -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -13,6 +15,7 @@
         :root {
             --primary: #10b981;
             --primary-dark: #059669;
+            --primary-light: #34d399;
             --warning: #f59e0b;
             --danger: #ef4444;
             --surface: #ffffff;
@@ -20,6 +23,7 @@
             --text-main: #111827;
             --text-muted: #6b7280;
             --border: #e5e7eb;
+            --glass: rgba(255, 255, 255, 0.8);
         }
 
         body {
@@ -46,6 +50,19 @@
             display: flex;
             align-items: center;
             gap: 16px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.active {
+            border-color: var(--primary);
+            background: #f0fdf4;
+            transform: scale(1.02);
         }
 
         .stat-icon {
@@ -123,7 +140,6 @@
             height: 500px;
             width: 100%;
             z-index: 1;
-            /* Keep map below dropdowns */
         }
 
         /* Sensor List Section */
@@ -134,7 +150,6 @@
             display: flex;
             flex-direction: column;
             max-height: 554px;
-            /* Align with map height + header */
         }
 
         .sensor-list {
@@ -147,16 +162,35 @@
         }
 
         .sensor-item {
-            background: var(--background);
+            background: var(--surface);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 12px;
             padding: 16px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
 
         .sensor-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transform: translateY(-4px) scale(1.01);
+            box-shadow: 0 12px 20px -5px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary);
+        }
+
+        .sensor-item::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sensor-item:hover::after {
+            opacity: 1;
         }
 
         .sensor-meta {
@@ -164,18 +198,6 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 12px;
-        }
-
-        .sensor-meta .id {
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .sensor-meta .location {
-            font-size: 13px;
-            color: var(--text-muted);
-            display: block;
-            margin-top: 4px;
         }
 
         .sensor-status {
@@ -186,6 +208,7 @@
             display: inline-flex;
             align-items: center;
             gap: 4px;
+            position: relative;
         }
 
         .sensor-status.online {
@@ -193,9 +216,21 @@
             color: #047857;
         }
 
-        .sensor-status.offline {
-            background: #fee2e2;
-            color: #b91c1c;
+        .pulse-dot {
+            width: 6px;
+            height: 6px;
+            background: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         .status-pill {
@@ -205,20 +240,9 @@
             font-weight: 500;
         }
 
-        .status-safe {
-            background: #d1fae5;
-            color: #047857;
-        }
-
-        .status-warning {
-            background: #fef3c7;
-            color: #d97706;
-        }
-
-        .status-critical {
-            background: #fee2e2;
-            color: #b91c1c;
-        }
+        .status-safe { background: #d1fae5; color: #047857; }
+        .status-warning { background: #fef3c7; color: #d97706; }
+        .status-critical { background: #fee2e2; color: #b91c1c; }
 
         .sensor-level {
             margin-top: 10px;
@@ -241,57 +265,53 @@
 
         .level-fill {
             height: 100%;
-            transition: width 0.5s ease;
+            border-radius: 4px;
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
         }
 
-        /* Controls */
-        .controls {
-            display: flex;
-            gap: 12px;
+        .battery-indicator {
+            display: inline-flex;
             align-items: center;
-        }
-
-        .btn-sync {
-            background: none;
-            border: 1px solid var(--border);
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            color: var(--text-muted);
-            transition: all 0.2s;
-            font-size: 14px;
-        }
-
-        .btn-sync:hover {
-            background: var(--background);
-            color: var(--text-main);
-        }
-
-        .timestamp {
+            gap: 4px;
             font-size: 12px;
-            color: var(--text-muted);
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .battery-low { color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        .battery-mid { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+        .battery-full { color: var(--primary); background: rgba(16, 185, 129, 0.1); }
+
+        .sensor-id-tag {
+            background: var(--background);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            font-size: 12px;
         }
     </style>
 </head>
 
 <body>
-
     <div class="stats-container">
-        <div class="stat-card">
+        <div class="stat-card" data-filter="active" onclick="setFilter('active')" style="cursor: pointer;">
             <div class="stat-icon"><i class="fas fa-microchip"></i></div>
             <div class="stat-info">
                 <h3>Active Sensors</h3>
                 <div class="stat-value" id="activeBins">0</div>
             </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" data-filter="critical" onclick="setFilter('critical')" style="cursor: pointer;">
             <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <div class="stat-info">
                 <h3>Critical Fill Level</h3>
                 <div class="stat-value" id="fullBinAlerts">0</div>
             </div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card active" data-filter="all" onclick="setFilter('all')" style="cursor: pointer;">
             <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
             <div class="stat-info">
                 <h3>Average Map Fill</h3>
@@ -300,7 +320,34 @@
         </div>
     </div>
 
- 
+    <div class="content-grid">
+        <div class="map-section">
+            <div class="section-header">
+                <h2>Real-time Sensor Map</h2>
+                <div class="controls">
+                    <span id="telemetryTimestamp" class="timestamp">Updating...</span>
+                    <button id="syncSensorsBtn" class="btn-sync"><i class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+            <div id="sensorMap"></div>
+        </div>
+
+        <div class="list-section">
+            <div class="section-header">
+                <h2>Sensors List</h2>
+            </div>
+            <div class="sensor-list" id="sensorList">
+                <!-- Sensors will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Page Logic -->
+    <script type="module" src="./js/pages/bins.js"></script>
 </body>
 
 </html>

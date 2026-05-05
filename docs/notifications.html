@@ -16,7 +16,7 @@
 
         <!-- Notification Stats -->
         <div class="notification-stats">
-            <div class="stat-item">
+            <div class="stat-item" onclick="window.filterNotifications('all')" style="cursor: pointer;">
                 <div class="stat-icon unread">
                     <i class="fas fa-bell"></i>
                 </div>
@@ -25,7 +25,7 @@
                     <div class="stat-label">Total</div>
                 </div>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" onclick="window.filterNotifications('unread')" style="cursor: pointer;">
                 <div class="stat-icon urgent">
                     <i class="fas fa-envelope"></i>
                 </div>
@@ -34,7 +34,7 @@
                     <div class="stat-label">Unread</div>
                 </div>
             </div>
-            <div class="stat-item">
+            <div class="stat-item" onclick="window.filterNotifications('today')" style="cursor: pointer;">
                 <div class="stat-icon today">
                     <i class="fas fa-calendar-day"></i>
                 </div>
@@ -46,6 +46,14 @@
         </div>
 
         <!-- Notifications List -->
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem; gap: 10px;">
+            <button class="btn btn-secondary" onclick="window.clearAllNotifications()" style="display: flex; align-items: center; gap: 8px; background: white; color: #dc2626; border: 1px solid #dc2626;">
+                <i class="fas fa-trash-alt"></i> Clear All
+            </button>
+            <button class="btn btn-primary" onclick="window.markAllRead()" style="display: flex; align-items: center; gap: 8px;">
+                <i class="fas fa-check-double"></i> Mark All as Read
+            </button>
+        </div>
 
         <div class="notifications-container">
             <div class="notifications-list" id="notificationsList">

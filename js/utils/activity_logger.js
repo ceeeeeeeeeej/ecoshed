@@ -1,6 +1,4 @@
-// Activity Logger - Centralized activity tracking for admin actions
-// Usage: import { logActivity } from './activity_logger.js';
-// Then call: logActivity('user_added', 'Added new admin user: John Doe', 'medium', { userId: '123' });
+import { dbService, authService } from '../../config/supabase_config.js';
 
 console.log('📝 Activity Logger module loaded');
 
@@ -29,7 +27,7 @@ const ACTIVITY_TYPES = {
  * @param {string} priority - Priority level: 'urgent', 'high', 'medium', 'low'
  * @param {object} metadata - Additional data about the activity
  */
-export function logActivity(type, message, priority = null, metadata = {}) {
+export async function logActivity(type, message, priority = null, metadata = {}) {
     const activityInfo = ACTIVITY_TYPES[type] || { icon: 'fa-info-circle', priority: 'low' };
     const finalPriority = priority || activityInfo.priority;
 
@@ -45,10 +43,25 @@ export function logActivity(type, message, priority = null, metadata = {}) {
         read: false
     };
 
-    // Store in localStorage for Recent Activity
+    // 1. Store in localStorage for Legacy Support/Immediate UI
     storeRecentActivity(activity);
 
-    // Store in notifications if high priority or urgent
+    // 2. Persist to Supabase (Audit Log)
+    try {
+        const currentUser = authService.getCurrentUser();
+        await dbService.addActivity({
+            userId: currentUser?.id,
+            type: type,
+            message: message,
+            metadata: metadata,
+            icon: activityInfo.icon,
+            priority: finalPriority
+        });
+    } catch (dbError) {
+        console.warn('⚠️ Failed to persist activity to Supabase:', dbError);
+    }
+
+    // 3. Store in notifications if high priority or urgent
     if (finalPriority === 'urgent' || finalPriority === 'high') {
         storeAsNotification(activity);
     }
@@ -87,7 +100,8 @@ function storeRecentActivity(activity) {
 /**
  * Store activity as notification if high priority
  */
-function storeAsNotification(activity) {
+async function storeAsNotification(activity) {
+    // 1. Legacy support / Immediate UI
     const stored = localStorage.getItem('ecosched_notifications');
     const notifications = stored ? JSON.parse(stored) : [];
 
@@ -107,6 +121,20 @@ function storeAsNotification(activity) {
     // Keep only last 100 notifications
     const trimmed = notifications.slice(0, 100);
     localStorage.setItem('ecosched_notifications', JSON.stringify(trimmed));
+
+    // 2. Persist to Supabase (User Notifications)
+    try {
+        const currentUser = authService.getCurrentUser();
+        await dbService.createNotification({
+            userId: currentUser?.id, // Targeted to the acting admin
+            title: notification.title,
+            message: notification.message,
+            type: activity.category,
+            priority: activity.priority
+        });
+    } catch (notifError) {
+        console.warn('⚠️ Failed to persist notification to Supabase:', notifError);
+    }
 }
 
 /**
